@@ -1,6 +1,6 @@
 function Home() {
   return `
-    <section class="grow h-3/4">
+    <section class="w-full">
         <h1>Home</h1>
     </section>
     `;
