@@ -20,6 +20,8 @@ import { LuRepeat1 } from "react-icons/lu";
 import { FaShuffle } from "react-icons/fa6";
 import { IoPlaySharp } from "react-icons/io5";
 import { RxSlider } from "react-icons/rx";
+import { MdOutlineNavigateBefore } from "react-icons/md";
+import { MdOutlineNavigateNext } from "react-icons/md";
 import { renderIcon } from "./Icon";
 
 export const Icons = {
@@ -177,6 +179,20 @@ export const Icons = {
   slider: (props = {}) =>
     renderIcon(RxSlider, {
       className: "slider-icon",
+      size: 30,
+      color: "#fff",
+      ...props,
+    }),
+  chevronBack: (props = {}) =>
+    renderIcon(MdOutlineNavigateBefore, {
+      className: "chevron-back-icon",
+      size: 30,
+      color: "#fff",
+      ...props,
+    }),
+  navigateNext: (props = {}) =>
+    renderIcon(MdOutlineNavigateNext, {
+      className: "navigate-next-icon",
       size: 30,
       color: "#fff",
       ...props,

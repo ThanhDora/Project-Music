@@ -6,12 +6,12 @@ import Footer from "./components/Footer";
 
 async function app() {
   return `
-    ${Header()}
+    ${await Header()}
     ${Sidebar()}
-    <main class="content-area fixed top-16 left-[230px] right-0 bottom-0 overflow-y-auto p-5">
-      ${Home()}
+    <main class="content-area fixed top-16 left-[230px] right-0 bottom-[8%] overflow-y-auto p-5">
+      ${await Home()}
     </main>
-    ${Footer()}
+    ${await Footer()}
   `;
 }
 

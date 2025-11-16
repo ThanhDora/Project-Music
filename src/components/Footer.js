@@ -1,5 +1,7 @@
 import { Icons } from "../utils/Icons";
-function Footer() {
+import { fetchSongs } from "../utils/Request";
+
+async function Footer() {
   const playIcon = Icons.play();
   const playSkipBackIcon = Icons.playSkipBack();
   const playSkipForwardIcon = Icons.playSkipForward();
@@ -12,6 +14,7 @@ function Footer() {
   const shuffleIcon = Icons.shuffle();
   const playSharpIcon = Icons.playSharp();
   const sliderIcon = Icons.slider();
+  const songs = await fetchSongs();
 
   return `
     <footer class="w-full h-[8%] fixed bottom-0 left-0 right-0 bg-[#212121]">
@@ -29,13 +32,15 @@ function Footer() {
         </div>
       </div>
       <!-- player play/pause -->
-      <div class="flex justify-center items-center gap-10">
+      <div class="flex justify-center items-center gap-5">
         <div>
-          <img src="/src/assets/images/git.jpg" alt="album" class="w-10 h-10 rounded-lg">
+          <img src="${
+            songs[0].img || "/src/assets/images/git.jpg"
+          }" alt="album" class="w-15 h-15 rounded-lg">
         </div>
         <div>
-          <h5 class="text-white text-sm">Song Name</h5>
-          <p class="text-white/50 text-sm">Artist Name</p>
+          <h5 class="text-white text-sm truncate">${songs[0].title}</h5>
+          <p class="text-white/50 text-sm truncate">${songs[0].artist}</p>
         </div>
         <div class="flex justify-center items-center gap-10">
           <button>${dislikeIcon}</button>
