@@ -22,6 +22,9 @@ import { IoPlaySharp } from "react-icons/io5";
 import { RxSlider } from "react-icons/rx";
 import { MdOutlineNavigateBefore } from "react-icons/md";
 import { MdOutlineNavigateNext } from "react-icons/md";
+import { BiLogoTiktok } from "react-icons/bi";
+import { IoIosTrendingUp } from "react-icons/io";
+import { MdMood } from "react-icons/md";
 import { renderIcon } from "./Icon";
 
 export const Icons = {
@@ -193,6 +196,27 @@ export const Icons = {
   navigateNext: (props = {}) =>
     renderIcon(MdOutlineNavigateNext, {
       className: "navigate-next-icon",
+      size: 30,
+      color: "#fff",
+      ...props,
+    }),
+  tiktok: (props = {}) =>
+    renderIcon(BiLogoTiktok, {
+      className: "tiktok-icon",
+      size: 30,
+      color: "#fff",
+      ...props,
+    }),
+  trendingUp: (props = {}) =>
+    renderIcon(IoIosTrendingUp, {
+      className: "trending-up-icon",
+      size: 30,
+      color: "#fff",
+      ...props,
+    }),
+  mood: (props = {}) =>
+    renderIcon(MdMood, {
+      className: "mood-icon",
       size: 30,
       color: "#fff",
       ...props,

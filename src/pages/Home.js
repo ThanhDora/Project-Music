@@ -184,9 +184,9 @@ async function Home() {
             .map(
               (song) => `
             <div class="min-w-[calc(20%-0.75rem)] flex flex-col gap-2 cursor-pointer group rounded-lg p-2 transition-all duration-200 hover:rounded-xl hover:bg-[#ffffff17] hover:scale-[1.02]">
-              <img class="w-60 h-70 object-cover rounded-lg" src="${
+              <img class="w-full h-80 object-cover rounded-lg" src="${
                 song.img || "/src/assets/images/git.jpg"
-              }" alt="album" class="w-60 h-70 object-cover rounded-lg">
+              }" alt="album" class="w-full object-cover rounded-lg">
               <div class="flex flex-col gap-2">
                 <h5 class="text-white text-base font-semibold leading-tight truncate">${
                   song.album

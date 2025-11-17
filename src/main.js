@@ -1,6 +1,7 @@
 import "./assets/style.css";
 import app from "./app";
 import { searchSongs } from "./utils/Request";
+import { setCurrentPage, renderPage, getCurrentPage } from "./utils/Router";
 
 const render = async () => {
   document.querySelector("#app").innerHTML = await app();
@@ -57,6 +58,20 @@ const render = async () => {
     "albums-scroll-container",
     "albums-scroll-prev",
     "albums-scroll-next"
+  );
+
+  // Setup scroll cho phần mood-genre
+  setupScroll(
+    "mood-genre-scroll-container",
+    "mood-genre-scroll-prev",
+    "mood-genre-scroll-next"
+  );
+
+  // Setup scroll cho phần new-music
+  setupScroll(
+    "new-music-scroll-container",
+    "new-music-scroll-prev",
+    "new-music-scroll-next"
   );
 
   // Setup search functionality
@@ -163,6 +178,101 @@ const render = async () => {
         const results = await searchSongs(query);
         displaySearchResults(results);
       }
+    });
+  }
+
+  // Setup navigation
+  const navItems = document.querySelectorAll(".nav-item");
+  const currentRoute = getCurrentPage();
+
+  const navigateToPage = async (route) => {
+    if (!route) return;
+
+    setCurrentPage(route);
+    const mainContent = document.getElementById("main-content");
+    if (mainContent) {
+      mainContent.innerHTML = await renderPage(route);
+    }
+
+    navItems.forEach((nav) => {
+      const navRoute = nav.getAttribute("data-route");
+      nav.classList.toggle("active", navRoute === route);
+    });
+
+    const setupScroll = (containerId, prevBtnId, nextBtnId) => {
+      const scrollContainer = document.getElementById(containerId);
+      const scrollPrevBtn = document.getElementById(prevBtnId);
+      const scrollNextBtn = document.getElementById(nextBtnId);
+
+      if (scrollContainer && scrollPrevBtn && scrollNextBtn) {
+        const getScrollAmount = () => {
+          const columns = Array.from(scrollContainer.children);
+          if (columns.length > 0) {
+            const firstColumn = columns[0];
+            const columnWidth = firstColumn.offsetWidth;
+            const gap = containerId === "songs-scroll-container" ? 24 : 16;
+            return columnWidth + gap;
+          }
+          return scrollContainer.offsetWidth / 3;
+        };
+
+        scrollPrevBtn.addEventListener("click", () => {
+          const scrollAmount = getScrollAmount();
+          scrollContainer.scrollBy({
+            left: -scrollAmount,
+            behavior: "smooth",
+          });
+        });
+
+        scrollNextBtn.addEventListener("click", () => {
+          const scrollAmount = getScrollAmount();
+          scrollContainer.scrollBy({
+            left: scrollAmount,
+            behavior: "smooth",
+          });
+        });
+      }
+    };
+
+    setupScroll(
+      "songs-scroll-container",
+      "songs-scroll-prev",
+      "songs-scroll-next"
+    );
+    setupScroll(
+      "videos-scroll-container",
+      "videos-scroll-prev",
+      "videos-scroll-next"
+    );
+    setupScroll(
+      "albums-scroll-container",
+      "albums-scroll-prev",
+      "albums-scroll-next"
+    );
+    setupScroll(
+      "mood-genre-scroll-container",
+      "mood-genre-scroll-prev",
+      "mood-genre-scroll-next"
+    );
+  };
+
+  navItems.forEach((item) => {
+    const route = item.getAttribute("data-route");
+    if (route === currentRoute) {
+      item.classList.add("active");
+    }
+
+    item.addEventListener("click", () => {
+      const route = item.getAttribute("data-route");
+      navigateToPage(route);
+    });
+  });
+
+  const logoContainer = document.getElementById("logo-container");
+  if (logoContainer) {
+    logoContainer.addEventListener("click", () => {
+      const route = logoContainer.getAttribute("data-route");
+      navigateToPage(route);
     });
   }
 };
