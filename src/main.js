@@ -3,98 +3,77 @@ import app from "./app";
 import { searchSongs, createPlaylistAPI, getPlaylists } from "./utils/Request";
 import { setCurrentPage, renderPage, getCurrentPage } from "./utils/Router";
 
-const render = async () => {
-  document.querySelector("#app").innerHTML = await app();
+const SCROLL_CONTAINERS = [
+  {
+    container: "songs-scroll-container",
+    prev: "songs-scroll-prev",
+    next: "songs-scroll-next",
+    gap: 24,
+  },
+  {
+    container: "videos-scroll-container",
+    prev: "videos-scroll-prev",
+    next: "videos-scroll-next",
+    gap: 16,
+  },
+  {
+    container: "albums-scroll-container",
+    prev: "albums-scroll-prev",
+    next: "albums-scroll-next",
+    gap: 16,
+  },
+  {
+    container: "mood-genre-scroll-container",
+    prev: "mood-genre-scroll-prev",
+    next: "mood-genre-scroll-next",
+    gap: 16,
+  },
+  {
+    container: "new-music-scroll-container",
+    prev: "new-music-scroll-prev",
+    next: "new-music-scroll-next",
+    gap: 16,
+  },
+];
 
-  // Function để setup scroll cho một container
-  const setupScroll = (containerId, prevBtnId, nextBtnId) => {
-    const scrollContainer = document.getElementById(containerId);
-    const scrollPrevBtn = document.getElementById(prevBtnId);
-    const scrollNextBtn = document.getElementById(nextBtnId);
+const setupScroll = (containerId, prevBtnId, nextBtnId, gap = 16) => {
+  const scrollContainer = document.getElementById(containerId);
+  const scrollPrevBtn = document.getElementById(prevBtnId);
+  const scrollNextBtn = document.getElementById(nextBtnId);
 
-    if (scrollContainer && scrollPrevBtn && scrollNextBtn) {
-      // Tính scrollAmount dựa trên chiều rộng của một cột + gap
-      const getScrollAmount = () => {
-        const columns = Array.from(scrollContainer.children);
-        if (columns.length > 0) {
-          const firstColumn = columns[0];
-          const columnWidth = firstColumn.offsetWidth;
-          // gap-6 = 1.5rem = 24px hoặc gap-4 = 1rem = 16px
-          const gap = containerId === "songs-scroll-container" ? 24 : 16;
-          return columnWidth + gap;
-        }
-        // Fallback: scroll 1/3 container width
-        return scrollContainer.offsetWidth / 3;
-      };
+  if (!scrollContainer || !scrollPrevBtn || !scrollNextBtn) return;
 
-      scrollPrevBtn.addEventListener("click", () => {
-        const scrollAmount = getScrollAmount();
-        scrollContainer.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-      });
-
-      scrollNextBtn.addEventListener("click", () => {
-        const scrollAmount = getScrollAmount();
-        scrollContainer.scrollBy({ left: scrollAmount, behavior: "smooth" });
-      });
+  const getScrollAmount = () => {
+    const columns = Array.from(scrollContainer.children);
+    if (columns.length > 0) {
+      return columns[0].offsetWidth + gap;
     }
+    return scrollContainer.offsetWidth / 3;
   };
 
-  // Setup scroll cho phần songs
-  setupScroll(
-    "songs-scroll-container",
-    "songs-scroll-prev",
-    "songs-scroll-next"
-  );
+  const scroll = (direction) => {
+    const amount = getScrollAmount() * direction;
+    scrollContainer.scrollBy({ left: amount, behavior: "smooth" });
+  };
 
-  // Setup scroll cho phần videos
-  setupScroll(
-    "videos-scroll-container",
-    "videos-scroll-prev",
-    "videos-scroll-next"
-  );
+  scrollPrevBtn.addEventListener("click", () => scroll(-1));
+  scrollNextBtn.addEventListener("click", () => scroll(1));
+};
 
-  // Setup scroll cho phần albums
-  setupScroll(
-    "albums-scroll-container",
-    "albums-scroll-prev",
-    "albums-scroll-next"
-  );
+const initScrollContainers = () => {
+  SCROLL_CONTAINERS.forEach(({ container, prev, next, gap }) => {
+    setupScroll(container, prev, next, gap);
+  });
+};
 
-  // Setup scroll cho phần mood-genre
-  setupScroll(
-    "mood-genre-scroll-container",
-    "mood-genre-scroll-prev",
-    "mood-genre-scroll-next"
-  );
-
-  // Setup scroll cho phần new-music
-  setupScroll(
-    "new-music-scroll-container",
-    "new-music-scroll-prev",
-    "new-music-scroll-next"
-  );
-
-  // Setup search functionality
+const initSearch = () => {
   const searchInput = document.getElementById("search");
   const searchResults = document.getElementById("search-results");
+  if (!searchInput || !searchResults) return;
 
-  console.log("Search input:", searchInput);
-  console.log("Search results container:", searchResults);
-
-  // Function để hiển thị kết quả tìm kiếm
   const displaySearchResults = (results) => {
-    console.log("Displaying search results:", results);
-    if (!searchResults) {
-      console.error("Search results container not found!");
-      return;
-    }
-
     if (results.length === 0) {
-      searchResults.innerHTML = `
-        <div class="p-4 text-white/50 text-center">
-          <p>Không tìm thấy kết quả</p>
-        </div>
-      `;
+      searchResults.innerHTML = `<div class="p-4 text-white/50 text-center"><p>Không tìm thấy kết quả</p></div>`;
       searchResults.classList.remove("hidden");
       return;
     }
@@ -118,71 +97,45 @@ const render = async () => {
       `
       )
       .join("");
-
     searchResults.classList.remove("hidden");
   };
 
-  // Function để ẩn kết quả tìm kiếm
-  const hideSearchResults = () => {
-    if (searchResults) {
-      searchResults.classList.add("hidden");
+  const hideSearchResults = () => searchResults.classList.add("hidden");
+
+  const performSearch = async (query) => {
+    if (query.length === 0) {
+      hideSearchResults();
+      return;
     }
+    const results = await searchSongs(query);
+    displaySearchResults(results);
   };
 
-  if (searchInput) {
-    let searchTimeout;
-    searchInput.addEventListener("input", async (e) => {
-      const query = e.target.value.trim();
+  let searchTimeout;
+  searchInput.addEventListener("input", (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => performSearch(e.target.value.trim()), 300);
+  });
 
-      // Debounce: đợi 300ms sau khi người dùng ngừng gõ
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(async () => {
-        if (query.length > 0) {
-          console.log("Searching for:", query);
-          const results = await searchSongs(query);
-          console.log("Search results received:", results);
-          displaySearchResults(results);
-        } else {
-          hideSearchResults();
-        }
-      }, 300);
-    });
+  searchInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") performSearch(e.target.value.trim());
+  });
 
-    // Xử lý khi nhấn Enter
-    searchInput.addEventListener("keypress", async (e) => {
-      if (e.key === "Enter") {
-        const query = e.target.value.trim();
-        if (query.length > 0) {
-          const results = await searchSongs(query);
-          displaySearchResults(results);
-        }
-      }
-    });
+  searchInput.addEventListener("focus", (e) => {
+    const query = e.target.value.trim();
+    if (query.length > 0) performSearch(query);
+  });
 
-    // Ẩn kết quả khi click ra ngoài
-    document.addEventListener("click", (e) => {
-      if (
-        searchInput &&
-        searchResults &&
-        !searchInput.contains(e.target) &&
-        !searchResults.contains(e.target)
-      ) {
-        hideSearchResults();
-      }
-    });
+  document.addEventListener("click", (e) => {
+    if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+      hideSearchResults();
+    }
+  });
+};
 
-    // Focus vào input để hiển thị kết quả
-    searchInput.addEventListener("focus", async (e) => {
-      const query = e.target.value.trim();
-      if (query.length > 0) {
-        const results = await searchSongs(query);
-        displaySearchResults(results);
-      }
-    });
-  }
-
-  // Setup navigation
+const initNavigation = () => {
   const navItems = document.querySelectorAll(".nav-item");
+  const logoContainer = document.getElementById("logo-container");
   const currentRoute = getCurrentPage();
 
   const navigateToPage = async (route) => {
@@ -199,84 +152,23 @@ const render = async () => {
       nav.classList.toggle("active", navRoute === route);
     });
 
-    const setupScroll = (containerId, prevBtnId, nextBtnId) => {
-      const scrollContainer = document.getElementById(containerId);
-      const scrollPrevBtn = document.getElementById(prevBtnId);
-      const scrollNextBtn = document.getElementById(nextBtnId);
-
-      if (scrollContainer && scrollPrevBtn && scrollNextBtn) {
-        const getScrollAmount = () => {
-          const columns = Array.from(scrollContainer.children);
-          if (columns.length > 0) {
-            const firstColumn = columns[0];
-            const columnWidth = firstColumn.offsetWidth;
-            const gap = containerId === "songs-scroll-container" ? 24 : 16;
-            return columnWidth + gap;
-          }
-          return scrollContainer.offsetWidth / 3;
-        };
-
-        scrollPrevBtn.addEventListener("click", () => {
-          const scrollAmount = getScrollAmount();
-          scrollContainer.scrollBy({
-            left: -scrollAmount,
-            behavior: "smooth",
-          });
-        });
-
-        scrollNextBtn.addEventListener("click", () => {
-          const scrollAmount = getScrollAmount();
-          scrollContainer.scrollBy({
-            left: scrollAmount,
-            behavior: "smooth",
-          });
-        });
-      }
-    };
-
-    setupScroll(
-      "songs-scroll-container",
-      "songs-scroll-prev",
-      "songs-scroll-next"
-    );
-    setupScroll(
-      "videos-scroll-container",
-      "videos-scroll-prev",
-      "videos-scroll-next"
-    );
-    setupScroll(
-      "albums-scroll-container",
-      "albums-scroll-prev",
-      "albums-scroll-next"
-    );
-    setupScroll(
-      "mood-genre-scroll-container",
-      "mood-genre-scroll-prev",
-      "mood-genre-scroll-next"
-    );
+    initScrollContainers();
   };
 
   navItems.forEach((item) => {
     const route = item.getAttribute("data-route");
-    if (route === currentRoute) {
-      item.classList.add("active");
-    }
-
-    item.addEventListener("click", () => {
-      const route = item.getAttribute("data-route");
-      navigateToPage(route);
-    });
+    if (route === currentRoute) item.classList.add("active");
+    item.addEventListener("click", () => navigateToPage(route));
   });
 
-  const logoContainer = document.getElementById("logo-container");
   if (logoContainer) {
     logoContainer.addEventListener("click", () => {
-      const route = logoContainer.getAttribute("data-route");
-      navigateToPage(route);
+      navigateToPage(logoContainer.getAttribute("data-route"));
     });
   }
+};
 
-  // Setup playlist functionality
+const initPlaylists = () => {
   const addPlaylistBtn = document.getElementById("add-playlist-btn");
   const playlistModal = document.getElementById("playlist-modal");
   const playlistModalBackdrop = document.getElementById(
@@ -286,8 +178,9 @@ const render = async () => {
   const cancelPlaylistBtn = document.getElementById("cancel-playlist-btn");
   const playlistsContainer = document.getElementById("playlists-container");
 
+  if (!playlistsContainer) return;
+
   const renderPlaylists = () => {
-    if (!playlistsContainer) return;
     const playlists = getPlaylists();
 
     if (playlists.length === 0) {
@@ -317,67 +210,59 @@ const render = async () => {
   };
 
   const openModal = () => {
-    if (playlistModal) {
-      playlistModal.classList.remove("hidden");
-      playlistModal.style.display = "flex";
-      playlistModal.classList.add("items-center", "justify-center");
-      document.body.style.overflow = "hidden";
-    }
+    if (!playlistModal) return;
+    playlistModal.classList.remove("hidden");
+    playlistModal.style.display = "flex";
+    playlistModal.classList.add("items-center", "justify-center");
+    document.body.style.overflow = "hidden";
   };
 
   const closeModal = () => {
-    if (playlistModal) {
-      playlistModal.classList.add("hidden");
-      playlistModal.style.display = "none";
-      document.body.style.overflow = "";
-      if (newPlaylistForm) {
-        newPlaylistForm.reset();
-      }
-    }
+    if (!playlistModal) return;
+    playlistModal.classList.add("hidden");
+    playlistModal.style.display = "none";
+    document.body.style.overflow = "";
+    if (newPlaylistForm) newPlaylistForm.reset();
   };
 
-  if (addPlaylistBtn) {
-    addPlaylistBtn.addEventListener("click", openModal);
-  }
-
-  if (playlistModalBackdrop) {
+  if (addPlaylistBtn) addPlaylistBtn.addEventListener("click", openModal);
+  if (playlistModalBackdrop)
     playlistModalBackdrop.addEventListener("click", closeModal);
-  }
-
-  if (cancelPlaylistBtn) {
+  if (cancelPlaylistBtn)
     cancelPlaylistBtn.addEventListener("click", closeModal);
-  }
 
   if (newPlaylistForm) {
     newPlaylistForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nameInput = document.getElementById("playlist-name");
-      const descriptionInput = document.getElementById("playlist-description");
-      const privacySelect = document.getElementById("playlist-privacy");
-      const collaborateCheckbox = document.getElementById(
-        "playlist-collaborate"
-      );
+      if (!nameInput?.value.trim()) return;
 
-      if (nameInput && nameInput.value.trim()) {
-        const playlist = {
-          name: nameInput.value.trim(),
-          description: descriptionInput?.value.trim() || "",
-          privacy: privacySelect?.value || "public",
-          collaborate: collaborateCheckbox?.checked || false,
-        };
+      const playlist = {
+        name: nameInput.value.trim(),
+        description:
+          document.getElementById("playlist-description")?.value.trim() || "",
+        privacy: document.getElementById("playlist-privacy")?.value || "public",
+        collaborate:
+          document.getElementById("playlist-collaborate")?.checked || false,
+      };
 
-        const result = await createPlaylistAPI(playlist);
-        if (result) {
-          renderPlaylists();
-          closeModal();
-        }
+      const result = await createPlaylistAPI(playlist);
+      if (result) {
+        renderPlaylists();
+        closeModal();
       }
     });
   }
 
-  if (playlistsContainer) {
-    renderPlaylists();
-  }
+  renderPlaylists();
+};
+
+const render = async () => {
+  document.querySelector("#app").innerHTML = await app();
+  initScrollContainers();
+  initSearch();
+  initNavigation();
+  initPlaylists();
 };
 
 render();
