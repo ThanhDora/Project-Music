@@ -1,6 +1,6 @@
 import "./assets/style.css";
 import app from "./app";
-import { searchSongs } from "./utils/Request";
+import { searchSongs, createPlaylistAPI, getPlaylists } from "./utils/Request";
 import { setCurrentPage, renderPage, getCurrentPage } from "./utils/Router";
 
 const render = async () => {
@@ -274,6 +274,109 @@ const render = async () => {
       const route = logoContainer.getAttribute("data-route");
       navigateToPage(route);
     });
+  }
+
+  // Setup playlist functionality
+  const addPlaylistBtn = document.getElementById("add-playlist-btn");
+  const playlistModal = document.getElementById("playlist-modal");
+  const playlistModalBackdrop = document.getElementById(
+    "playlist-modal-backdrop"
+  );
+  const newPlaylistForm = document.getElementById("new-playlist-form");
+  const cancelPlaylistBtn = document.getElementById("cancel-playlist-btn");
+  const playlistsContainer = document.getElementById("playlists-container");
+
+  const renderPlaylists = () => {
+    if (!playlistsContainer) return;
+    const playlists = getPlaylists();
+
+    if (playlists.length === 0) {
+      playlistsContainer.innerHTML = `
+        <div class="col-span-4 text-center text-white/50 py-10">
+          <p>Chưa có danh sách phát nào. Tạo danh sách phát đầu tiên của bạn!</p>
+        </div>
+      `;
+      return;
+    }
+
+    playlistsContainer.innerHTML = playlists
+      .map(
+        (playlist) => `
+        <div class="flex flex-col gap-2 cursor-pointer group rounded-lg p-4 bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors">
+          <div class="w-full aspect-square bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-2">
+            <span class="text-4xl text-white">🎵</span>
+          </div>
+          <h5 class="text-white font-semibold truncate">${playlist.name}</h5>
+          <p class="text-white/50 text-sm truncate">${
+            playlist.songs?.length || 0
+          } bài hát</p>
+        </div>
+      `
+      )
+      .join("");
+  };
+
+  const openModal = () => {
+    if (playlistModal) {
+      playlistModal.classList.remove("hidden");
+      playlistModal.style.display = "flex";
+      playlistModal.classList.add("items-center", "justify-center");
+      document.body.style.overflow = "hidden";
+    }
+  };
+
+  const closeModal = () => {
+    if (playlistModal) {
+      playlistModal.classList.add("hidden");
+      playlistModal.style.display = "none";
+      document.body.style.overflow = "";
+      if (newPlaylistForm) {
+        newPlaylistForm.reset();
+      }
+    }
+  };
+
+  if (addPlaylistBtn) {
+    addPlaylistBtn.addEventListener("click", openModal);
+  }
+
+  if (playlistModalBackdrop) {
+    playlistModalBackdrop.addEventListener("click", closeModal);
+  }
+
+  if (cancelPlaylistBtn) {
+    cancelPlaylistBtn.addEventListener("click", closeModal);
+  }
+
+  if (newPlaylistForm) {
+    newPlaylistForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nameInput = document.getElementById("playlist-name");
+      const descriptionInput = document.getElementById("playlist-description");
+      const privacySelect = document.getElementById("playlist-privacy");
+      const collaborateCheckbox = document.getElementById(
+        "playlist-collaborate"
+      );
+
+      if (nameInput && nameInput.value.trim()) {
+        const playlist = {
+          name: nameInput.value.trim(),
+          description: descriptionInput?.value.trim() || "",
+          privacy: privacySelect?.value || "public",
+          collaborate: collaborateCheckbox?.checked || false,
+        };
+
+        const result = await createPlaylistAPI(playlist);
+        if (result) {
+          renderPlaylists();
+          closeModal();
+        }
+      }
+    });
+  }
+
+  if (playlistsContainer) {
+    renderPlaylists();
   }
 };
 

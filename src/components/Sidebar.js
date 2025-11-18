@@ -14,7 +14,7 @@ function Sidebar() {
       <div class="text-white p-4">
       <div data-route="home" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${homeIcon}</div> Trang chủ</div>
       <div data-route="discover" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${safariIcon}</div> Khám phá</div>
-      <div data-route="lodash" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${bookmarkIcon}</div> Đã thích</div>
+      <div data-route="lodash" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${bookmarkIcon}</div> Thư viện</div>
       <div data-route="upgrade" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${upgradeIcon}</div> Nâng cấp</div>
       </div>
        <hr class="border-white/20">

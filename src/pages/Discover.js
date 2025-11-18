@@ -12,7 +12,6 @@ async function Discover() {
 
   return `
      <section class="w-full flex flex-col justify-center items-center py-10">
-    <div class="w-[80%] flex flex-col justify-center gap-5">
       <div class="w-full flex flex-wrap justify-start items-center gap-6">
       <button
           class="flex-1 min-w-0 px-6 py-5 text-xl md:text-2xl lg:text-3xl rounded-xl bg-[#ffffff17] backdrop-blur-md border border-white/60 text-white shadow-lg transition duration-200 hover:bg-[#ffffff4f] active:scale-95 select-none flex items-center justify-center gap-2">${tiktokIcon} <span class="truncate">Bản phát hành mới</span></button>

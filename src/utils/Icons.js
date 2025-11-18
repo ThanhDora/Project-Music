@@ -25,6 +25,8 @@ import { MdOutlineNavigateNext } from "react-icons/md";
 import { BiLogoTiktok } from "react-icons/bi";
 import { IoIosTrendingUp } from "react-icons/io";
 import { MdMood } from "react-icons/md";
+import { FaGlobe } from "react-icons/fa";
+import { IoIosArrowDown } from "react-icons/io";
 import { renderIcon } from "./Icon";
 
 export const Icons = {
@@ -218,6 +220,20 @@ export const Icons = {
     renderIcon(MdMood, {
       className: "mood-icon",
       size: 30,
+      color: "#fff",
+      ...props,
+    }),
+  globe: (props = {}) =>
+    renderIcon(FaGlobe, {
+      className: "globe-icon",
+      size: 20,
+      color: "#fff",
+      ...props,
+    }),
+  chevronDown: (props = {}) =>
+    renderIcon(IoIosArrowDown, {
+      className: "chevron-down-icon",
+      size: 20,
       color: "#fff",
       ...props,
     }),
