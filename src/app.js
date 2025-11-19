@@ -2,7 +2,7 @@ import "../src/assets/style.css";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
-import { renderPage } from "./utils/Router";
+import { renderPage } from "./router/router";
 
 async function app() {
   return `

@@ -1,7 +1,7 @@
 import "./assets/style.css";
 import app from "./app";
 import { searchSongs, createPlaylistAPI, getPlaylists } from "./utils/Request";
-import { setCurrentPage, renderPage, getCurrentPage } from "./utils/Router";
+import { setCurrentPage, renderPage, getCurrentPage } from "./router/router";
 
 const SCROLL_CONTAINERS = [
   {
@@ -196,7 +196,7 @@ const initPlaylists = () => {
       .map(
         (playlist) => `
         <div class="flex flex-col gap-2 cursor-pointer group rounded-lg p-4 bg-[#1a1a1a] hover:bg-[#2a2a2a] transition-colors">
-          <div class="w-full aspect-square bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-2">
+          <div class="w-full aspect-square bg-linear-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mb-2">
             <span class="text-4xl text-white">🎵</span>
           </div>
           <h5 class="text-white font-semibold truncate">${playlist.name}</h5>
