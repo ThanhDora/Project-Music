@@ -999,33 +999,84 @@ const initSongDetails = () => {
     });
   }
 
-  // Related songs click handlers
-  document.querySelectorAll(".related-song-item").forEach((item) => {
+  // Song list items click handlers
+  const songItems = document.querySelectorAll(".song-item");
+  songItems.forEach((item) => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
 
-      // Don't navigate if clicking on play button
-      if (e.target.closest("button[data-play-related]")) {
-        const relatedSongId = e.target
-          .closest("button")
-          .getAttribute("data-play-related");
-        if (relatedSongId) {
-          trackPlayEvent(null, relatedSongId, null)
-            .then(() => {
-              showToast("Đang phát bài hát", "success");
-            })
-            .catch(() => {
-              showToast("Không thể phát bài hát", "error");
-            });
-        }
-        return;
+      const songId = item.getAttribute("data-song-id");
+      if (songId) {
+        navigateToPage("song-details", { songId });
       }
+    });
+  });
 
-      const relatedSongId = item.getAttribute("data-song-id");
-      if (relatedSongId) {
-        navigateToPage("song-details", { songId: relatedSongId });
+  // Tab switching
+  const tabNext = document.getElementById("tab-next");
+  const tabLyrics = document.getElementById("tab-lyrics");
+  const tabRelated = document.getElementById("tab-related");
+  const songListContainer = document.getElementById("song-list-container");
+  const lyricsContainer = document.getElementById("lyrics-container");
+  const relatedContainer = document.getElementById("related-container");
+
+  const switchTab = (activeTab) => {
+    // Reset all tabs
+    [tabNext, tabLyrics, tabRelated].forEach((tab) => {
+      if (tab) {
+        tab.classList.remove("border-white", "text-white");
+        tab.classList.add("border-transparent", "text-white/50");
       }
+    });
+
+    // Hide all containers
+    if (songListContainer) songListContainer.classList.add("hidden");
+    if (lyricsContainer) lyricsContainer.classList.add("hidden");
+    if (relatedContainer) relatedContainer.classList.add("hidden");
+
+    // Show active tab and container
+    if (activeTab === "next") {
+      if (tabNext) {
+        tabNext.classList.remove("border-transparent", "text-white/50");
+        tabNext.classList.add("border-white", "text-white");
+      }
+      if (songListContainer) songListContainer.classList.remove("hidden");
+    } else if (activeTab === "lyrics") {
+      if (tabLyrics) {
+        tabLyrics.classList.remove("border-transparent", "text-white/50");
+        tabLyrics.classList.add("border-white", "text-white");
+      }
+      if (lyricsContainer) lyricsContainer.classList.remove("hidden");
+    } else if (activeTab === "related") {
+      if (tabRelated) {
+        tabRelated.classList.remove("border-transparent", "text-white/50");
+        tabRelated.classList.add("border-white", "text-white");
+      }
+      if (relatedContainer) relatedContainer.classList.remove("hidden");
+    }
+  };
+
+  if (tabNext) {
+    tabNext.addEventListener("click", () => switchTab("next"));
+  }
+  if (tabLyrics) {
+    tabLyrics.addEventListener("click", () => switchTab("lyrics"));
+  }
+  if (tabRelated) {
+    tabRelated.addEventListener("click", () => switchTab("related"));
+  }
+
+  // Filter buttons
+  const filterButtons = document.querySelectorAll(".filter-btn");
+  filterButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      filterButtons.forEach((b) => {
+        b.classList.remove("active", "border-white", "text-white");
+        b.classList.add("border-transparent", "text-white/50");
+      });
+      btn.classList.add("active", "border-white", "text-white");
+      btn.classList.remove("border-transparent", "text-white/50");
     });
   });
 };

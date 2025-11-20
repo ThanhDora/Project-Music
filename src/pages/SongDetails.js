@@ -1,5 +1,5 @@
 import { Icons } from "../utils/Icons";
-import { getSongDetails, trackPlayEvent, getPlaylists } from "../utils/Request";
+import { getSongDetails, trackPlayEvent, fetchSongs, searchSongs } from "../utils/Request";
 import { getImageUrl, getArtistName } from "../utils/helpers";
 
 async function SongDetails(songId) {
@@ -8,24 +8,21 @@ async function SongDetails(songId) {
   }
 
   const playIcon = Icons.play();
+  const pauseIcon = Icons.pause();
   const likeIcon = Icons.like();
-  const threeDotsVerticalIcon = Icons.threeDotsVertical();
   const addIcon = Icons.add();
-  const shareIcon = Icons.share || (() => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>`);
 
   try {
     console.log("Loading song details for ID:", songId);
     let song = await getSongDetails(songId);
     console.log("Song details received:", song);
 
-    // If API returns error, try to use fallback data from sessionStorage
     if (!song || (song && song.error)) {
       const fallbackData = sessionStorage.getItem("currentSongData");
       if (fallbackData) {
         try {
           song = JSON.parse(fallbackData);
           console.log("Using fallback song data:", song);
-          // Clear the fallback data after use
           sessionStorage.removeItem("currentSongData");
         } catch (e) {
           console.warn("Failed to parse fallback data:", e);
@@ -45,119 +42,183 @@ async function SongDetails(songId) {
     }
 
     const relatedSongs = song.relatedSongs || song.similarSongs || song.related || [];
-    const duration = song.duration || song.length || "";
-    const releaseDate = song.releaseDate || song.createdAt || "";
-    const genre = song.genre || song.genres?.map(g => g.name || g).join(", ") || "";
     const description = song.description || song.about || "";
+    const lyrics = song.lyrics || "";
+    const songTitle = song.title || song.name || "Không có tiêu đề";
+    const artistName = getArtistName(song) || "";
+
+    // Fetch songs list for "TIẾP THEO" tab from API
+    let nextSongs = [];
+    try {
+      const allSongs = await fetchSongs();
+      if (Array.isArray(allSongs) && allSongs.length > 0) {
+        // Filter out current song and get next songs
+        nextSongs = allSongs.filter(s => {
+          if (!s) return false;
+          const sId = s._id || s.id || s.videoId || "";
+          return sId && sId !== songId;
+        }).slice(0, 50);
+      }
+    } catch (error) {
+      console.error("Error fetching songs for queue:", error);
+      nextSongs = [];
+    }
 
     return `
-    <section class="w-full flex flex-col items-center py-5">
-      <div class="w-[80%] max-w-6xl flex flex-col gap-6" data-current-song-id="${songId}">
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row gap-6">
-          <div class="flex-shrink-0">
-            <img src="${getImageUrl(song)}" 
-              alt="song" class="w-64 h-64 md:w-80 md:h-80 rounded-lg object-cover shadow-2xl"
-              onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
+    <section class="w-full h-full flex">
+      <!-- Left Side: Album Art & Song Info -->
+      <div class="w-1/2 h-full relative overflow-hidden">
+        <img src="${getImageUrl(song)}" 
+          alt="song" 
+          class="w-full h-full object-cover"
+          onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-8">
+          <div class="text-white">
+            <h1 class="text-5xl font-bold mb-4 leading-tight">${songTitle}</h1>
+            ${description ? `<p class="text-xl mb-6 text-white/90">${description}</p>` : ""}
+            <p class="text-2xl font-bold">${artistName}</p>
           </div>
-          
-          <div class="flex flex-col justify-end gap-4 flex-1">
-            <div>
-              <p class="text-white/50 text-sm mb-1">Bài hát</p>
-              <h1 class="text-4xl md:text-5xl font-bold text-white mb-3">${
-                song.title || song.name || "Không có tiêu đề"
-              }</h1>
-              <p class="text-white/70 text-lg mb-2">${getArtistName(song)}</p>
-              
-              <div class="flex flex-wrap items-center gap-4 text-sm text-white/50 mt-4">
-                ${song.album ? `<span>Album: <span class="text-white/70">${song.album}</span></span>` : ""}
-                ${duration ? `<span>Thời lượng: <span class="text-white/70">${duration}</span></span>` : ""}
-                ${releaseDate ? `<span>Phát hành: <span class="text-white/70">${new Date(releaseDate).toLocaleDateString('vi-VN')}</span></span>` : ""}
-                ${genre ? `<span>Thể loại: <span class="text-white/70">${genre}</span></span>` : ""}
-              </div>
-              
-              <div class="flex items-center gap-4 mt-2">
-                ${song.views || song.plays ? `<span class="text-white/50 text-sm">${song.views || song.plays} lượt nghe</span>` : ""}
-              </div>
+        </div>
+      </div>
+
+      <!-- Right Side: Tabs & Song List -->
+      <div class="w-1/2 h-full bg-[#121212] flex flex-col overflow-hidden">
+        <!-- Tabs -->
+        <div class="flex border-b border-white/10 px-6">
+          <button id="tab-next" class="px-6 py-4 text-white font-semibold border-b-2 border-white pb-4">
+            TIẾP THEO
+          </button>
+          <button id="tab-lyrics" class="px-6 py-4 text-white/50 font-semibold border-b-2 border-transparent pb-4">
+            LỜI NHẠC
+          </button>
+          <button id="tab-related" class="px-6 py-4 text-white/50 font-semibold border-b-2 border-transparent pb-4">
+            LIÊN QUAN
+          </button>
+        </div>
+
+        <!-- Now Playing Info -->
+        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <div class="text-white/70 text-sm">
+            Đang phát từ <span class="text-white font-semibold">Đài ${songTitle}</span>
+          </div>
+          <button class="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm transition-colors">
+            ${addIcon}
+            <span>Lưu</span>
+          </button>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="px-6 py-4 border-b border-white/10 flex gap-4 overflow-x-auto">
+          <button class="filter-btn active px-4 py-2 text-sm font-semibold text-white border-b-2 border-white whitespace-nowrap">
+            All
+          </button>
+          <button class="filter-btn px-4 py-2 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors whitespace-nowrap">
+            Quen thuộc
+          </button>
+          <button class="filter-btn px-4 py-2 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors whitespace-nowrap">
+            Khám phá
+          </button>
+          <button class="filter-btn px-4 py-2 text-sm font-semibold text-white/50 border-b-2 border-transparent hover:text-white transition-colors whitespace-nowrap">
+            Đình đám
+          </button>
+        </div>
+
+        <!-- Song List Container -->
+        <div id="song-list-container" class="flex-1 overflow-y-auto px-6 py-4">
+          <!-- Currently Playing Song -->
+          <div class="song-item current-song flex items-center gap-4 p-3 rounded-lg bg-white/10 mb-2" data-song-id="${songId}">
+            <div class="flex-shrink-0 w-10 flex items-center justify-center">
+              ${playIcon}
             </div>
+            <div class="flex-1 min-w-0">
+              <h5 class="text-white font-semibold truncate">${songTitle}</h5>
+              <p class="text-white/60 text-sm truncate">${artistName}</p>
+            </div>
+            <div class="flex-shrink-0 text-white/60 text-sm">
+              ${song.duration || song.length || "0:00"}
+            </div>
+          </div>
+
+          <!-- Next Songs List from API -->
+          ${nextSongs.length > 0 ? nextSongs.map((nextSong) => {
+            const nextSongId = nextSong._id || nextSong.id || nextSong.videoId || "";
+            const nextTitle = nextSong.title || nextSong.name || "Không có tiêu đề";
+            const nextArtist = getArtistName(nextSong) || "";
+            const nextDuration = nextSong.duration || nextSong.length || "0:00";
             
-            <div class="flex items-center gap-3 flex-wrap">
-              <button id="play-song-btn" class="px-6 py-3 bg-white text-black font-semibold rounded-full hover:bg-white/90 transition-colors flex items-center gap-2">
-                ${playIcon} Phát
-              </button>
-              <button id="like-song-btn" class="p-3 border border-white/30 rounded-full hover:bg-white/10 transition-colors">
-                ${likeIcon}
-              </button>
-              <button id="add-to-playlist-btn" class="p-3 border border-white/30 rounded-full hover:bg-white/10 transition-colors" title="Thêm vào playlist">
-                ${addIcon}
-              </button>
-              <button id="share-song-btn" class="p-3 border border-white/30 rounded-full hover:bg-white/10 transition-colors" title="Chia sẻ">
-                ${shareIcon()}
-              </button>
-              <button id="more-options-btn" class="p-3 border border-white/30 rounded-full hover:bg-white/10 transition-colors">
-                ${threeDotsVerticalIcon}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Description -->
-        ${description ? `
-        <div class="mt-4">
-          <h3 class="text-xl font-bold text-white mb-2">Mô tả</h3>
-          <p class="text-white/70 text-sm leading-relaxed">${description}</p>
-        </div>
-        ` : ""}
-
-        <!-- Related Songs -->
-        ${
-          relatedSongs.length > 0
-            ? `
-          <div class="mt-8">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-white">Bài hát liên quan</h2>
-            </div>
-            <div class="flex flex-col gap-2">
-              ${relatedSongs
-                .slice(0, 20)
-                .map(
-                  (related, index) => `
-                <div data-song-id="${related._id || related.id || related.videoId || ""}" class="related-song-item flex items-center gap-4 p-3 hover:bg-[#ffffff17] rounded-lg cursor-pointer transition-colors group">
-                  <span class="text-white/50 w-8 text-center group-hover:text-white transition-colors">${
-                    index + 1
-                  }</span>
-                  <img src="${getImageUrl(related)}" 
-                    alt="song" class="w-12 h-12 rounded object-cover shrink-0"
-                    onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
-                  <div class="flex-1 min-w-0">
-                    <h5 class="text-white font-semibold truncate group-hover:text-white/90">${
-                      related.title || related.name || "Không có tiêu đề"
-                    }</h5>
-                    <p class="text-white/50 text-sm truncate group-hover:text-white/70">${getArtistName(
-                      related
-                    )}</p>
-                  </div>
-                  <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span class="text-white/50 text-xs">${related.duration || related.length || ""}</span>
-                    <button class="p-2 hover:bg-white/10 rounded-full transition-colors" data-play-related="${related._id || related.id || related.videoId || ""}">
-                      ${playIcon}
-                    </button>
-                  </div>
+            return `
+              <div class="song-item flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors" data-song-id="${nextSongId}">
+                <img src="${getImageUrl(nextSong)}" 
+                  alt="song" 
+                  class="w-10 h-10 rounded object-cover shrink-0"
+                  onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
+                <div class="flex-1 min-w-0">
+                  <h5 class="text-white font-medium truncate">${nextTitle}</h5>
+                  <p class="text-white/60 text-sm truncate">${nextArtist}</p>
                 </div>
-              `
-                )
-                .join("")}
+                <div class="flex-shrink-0 text-white/60 text-sm">
+                  ${nextDuration}
+                </div>
+              </div>
+            `;
+          }).join("") : `
+            <div class="text-white/50 text-center py-10">
+              <p>Không có bài hát</p>
             </div>
-          </div>
-        `
-            : ""
-        }
+          `}
+        </div>
+
+        <!-- Lyrics Container (Hidden by default) -->
+        <div id="lyrics-container" class="hidden flex-1 overflow-y-auto px-6 py-4">
+          ${lyrics ? `
+            <div class="text-white whitespace-pre-wrap leading-relaxed">${lyrics}</div>
+          ` : `
+            <div class="text-white/50 text-center py-10">
+              <p>Chưa có lời bài hát</p>
+            </div>
+          `}
+        </div>
+
+        <!-- Related Container (Hidden by default) -->
+        <div id="related-container" class="hidden flex-1 overflow-y-auto px-6 py-4">
+          ${relatedSongs.length > 0 ? relatedSongs.map((related) => {
+            const relatedSongId = related._id || related.id || related.videoId || "";
+            const relatedTitle = related.title || related.name || "Không có tiêu đề";
+            const relatedArtist = getArtistName(related) || "";
+            const relatedDuration = related.duration || related.length || "0:00";
+            
+            return `
+              <div class="song-item flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors" data-song-id="${relatedSongId}">
+                <img src="${getImageUrl(related)}" 
+                  alt="song" 
+                  class="w-14 h-14 rounded object-cover shrink-0"
+                  onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
+                <div class="flex-1 min-w-0">
+                  <h5 class="text-white font-semibold truncate">${relatedTitle}</h5>
+                  <p class="text-white/60 text-sm truncate">${relatedArtist}</p>
+                </div>
+                <div class="flex-shrink-0 text-white/60 text-sm">
+                  ${relatedDuration}
+                </div>
+              </div>
+            `;
+          }).join("") : `
+            <div class="text-white/50 text-center py-10">
+              <p>Không có bài hát liên quan</p>
+            </div>
+          `}
+        </div>
       </div>
     </section>
   `;
   } catch (error) {
     console.error("Error loading song details:", error);
-    return `<div class="w-full flex items-center justify-center py-20"><p class="text-white">Có lỗi xảy ra khi tải thông tin bài hát</p></div>`;
+    return `<div class="w-full flex items-center justify-center py-20">
+      <div class="text-white text-center">
+        <p class="text-xl mb-2">Có lỗi xảy ra khi tải thông tin bài hát</p>
+        <p class="text-white/50 text-sm">${error.message || ""}</p>
+      </div>
+    </div>`;
   }
 }
 
