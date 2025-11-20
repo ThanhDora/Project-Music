@@ -1,4 +1,4 @@
 {
-  "SERVER_URL": "http://localhost:3000",
-  "LIMIT": 10
+  "API_URL": "https://youtube-music.f8team.dev/api",
+  "LIMIT": 20
 }

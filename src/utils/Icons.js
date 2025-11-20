@@ -27,6 +27,8 @@ import { IoIosTrendingUp } from "react-icons/io";
 import { MdMood } from "react-icons/md";
 import { FaGlobe } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
+import { IoClose } from "react-icons/io5";
+import { FaPause } from "react-icons/fa";
 import { renderIcon } from "./Icon";
 
 export const Icons = {
@@ -235,6 +237,22 @@ export const Icons = {
       className: "chevron-down-icon",
       size: 20,
       color: "#fff",
+      ...props,
+    }),
+
+  close: (props = {}) =>
+    renderIcon(IoClose, {
+      className: "close-icon",
+      size: 24,
+      color: "#fff",
+      ...props,
+    }),
+
+  pause: (props = {}) =>
+    renderIcon(FaPause, {
+      className: "pause-icon",
+      size: 20,
+      color: "#000",
       ...props,
     }),
 };

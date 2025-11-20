@@ -7,6 +7,7 @@ function Sidebar() {
   const upgradeIcon = Icons.upgrade();
   const addIcon = Icons.add();
   const pinIcon = Icons.pin();
+  const trendingUpIcon = Icons.trendingUp ? Icons.trendingUp() : `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>`;
 
   return `
     <aside class="fixed top-16 left-0 bottom-0 w-[230px] bg-[#110f12] overflow-y-auto">
@@ -14,6 +15,7 @@ function Sidebar() {
       <div class="text-white p-4">
       <div data-route="home" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${homeIcon}</div> Trang chủ</div>
       <div data-route="discover" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${safariIcon}</div> Khám phá</div>
+      <div data-route="charts" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${trendingUpIcon}</div> Bảng xếp hạng</div>
       <div data-route="lodash" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${bookmarkIcon}</div> Thư viện</div>
       <div data-route="upgrade" class="nav-item flex items-center gap-4 cursor-pointer px-2 py-2 hover:bg-[#ffffff4f] rounded-lg"><div>${upgradeIcon}</div> Nâng cấp</div>
       </div>

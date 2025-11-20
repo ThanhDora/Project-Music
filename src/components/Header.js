@@ -1,13 +1,15 @@
 import { Icons } from "../utils/Icons";
-import { fetchSongs } from "../utils/Request";
+import { getCurrentUser, isAuthenticated } from "../utils/Request";
 
-async function Header() {
+function Header() {
   const searchIcon = Icons.search();
   const chromecastIcon = Icons.chromecast();
   const profileIcon = Icons.profile();
   const barsIcon = Icons.bars();
-  const songs = await fetchSongs();
-  const avatarImg = songs[0]?.img || "/src/assets/images/git.jpg";
+  const user = getCurrentUser();
+  const authenticated = isAuthenticated();
+  const avatarImg = user?.avatar || "/src/assets/images/git.jpg";
+  const userName = user?.name || "Guest";
 
   return `
   <header id="header"
@@ -35,9 +37,16 @@ async function Header() {
       </div>
       <div class="w-1/2 gap-8 flex justify-center items-center">
         <div class="cursor-pointer">${chromecastIcon}</div>
-        <div class="cursor-pointer">
-          <img src="${avatarImg}" alt="avatar" class="w-10 h-10 rounded-full object-cover">
-        </div>
+        ${authenticated ? `
+          <div class="flex items-center gap-3 cursor-pointer" id="user-menu" data-route="profile">
+            <span class="text-white text-sm">${userName}</span>
+            <img src="${avatarImg}" alt="avatar" class="w-10 h-10 rounded-full object-cover">
+          </div>
+        ` : `
+          <button id="login-btn" class="px-4 py-2 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-colors">
+            Đăng nhập
+          </button>
+        `}
       </div>
     </div>
   </header>
