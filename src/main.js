@@ -1,5 +1,4 @@
 import "./assets/style.css";
-import app from "./app";
 import {
   searchSongs,
   getSearchSuggestions,
@@ -883,19 +882,45 @@ const initAuth = () => {
   authInitialized = true;
 };
 
-import { initApp as initAppLayout } from "./app";
-
 const updateFooterWithSong = async (song) => {
   if (!song) return;
 
   try {
+    const oldAudioElement = document.getElementById("audio-element");
+    let wasPlaying = false;
+    let currentTime = 0;
+    let currentSrc = "";
+
+    if (oldAudioElement) {
+      wasPlaying = !oldAudioElement.paused;
+      currentTime = oldAudioElement.currentTime;
+      currentSrc = oldAudioElement.src;
+    }
+
     const footer = await Footer(song);
     const footerElement = document.querySelector("footer");
     if (footerElement) {
       footerElement.outerHTML = footer;
-      // Re-initialize audio player after footer update
+      audioPlayerInitialized = false;
+
       setTimeout(async () => {
         await initAudioPlayer();
+
+        const newAudioElement = document.getElementById("audio-element");
+        if (
+          newAudioElement &&
+          currentSrc &&
+          currentSrc !== window.location.href
+        ) {
+          newAudioElement.src = currentSrc;
+          newAudioElement.currentTime = currentTime;
+          newAudioElement.load();
+          if (wasPlaying) {
+            setTimeout(() => {
+              newAudioElement.play().catch(() => {});
+            }, 100);
+          }
+        }
         // Auto-play if song has audioUrl
         if (song.audioUrl || song.audio || song.streamUrl) {
           const audioElement = document.getElementById("audio-element");
@@ -968,7 +993,8 @@ const updateFooterWithSong = async (song) => {
 };
 
 const render = async () => {
-  await initAppLayout();
+  const { initApp } = await import("./app");
+  await initApp();
 
   initScrollContainers();
   initSearch();
@@ -1286,7 +1312,10 @@ const initAudioPlayer = async () => {
     return;
   }
 
-  if (audioPlayerInitialized && playPauseBtn) {
+  const existingListeners = audioElement.getAttribute(
+    "data-listeners-attached"
+  );
+  if (audioPlayerInitialized && playPauseBtn && existingListeners === "true") {
     return;
   }
 
@@ -1388,24 +1417,37 @@ const initAudioPlayer = async () => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Update progress
   const updateProgress = () => {
-    if (audioElement.duration) {
-      const progress = (audioElement.currentTime / audioElement.duration) * 100;
-      if (progressBar) progressBar.value = progress;
-      if (progressBarFill) {
-        progressBarFill.style.width = `${progress}%`;
-      }
-      if (currentTimeEl) {
-        currentTimeEl.textContent = formatTime(audioElement.currentTime);
-      }
+    const audioEl = document.getElementById("audio-element");
+    if (
+      !audioEl ||
+      !audioEl.duration ||
+      isNaN(audioEl.duration) ||
+      isNaN(audioEl.currentTime)
+    ) {
+      return;
+    }
+    const progress = (audioEl.currentTime / audioEl.duration) * 100;
+    const progressBarEl = document.getElementById("audio-progress");
+    const progressBarFillEl = document.getElementById("audio-progress-bar");
+    const currentTimeEl = document.getElementById("audio-current-time");
+
+    if (progressBarEl) {
+      progressBarEl.value = progress;
+    }
+    if (progressBarFillEl) {
+      progressBarFillEl.style.width = `${progress}%`;
+    }
+    if (currentTimeEl) {
+      currentTimeEl.textContent = formatTime(audioEl.currentTime);
     }
   };
 
-  // Update duration
   const updateDuration = () => {
-    if (audioElement.duration && durationEl) {
-      durationEl.textContent = formatTime(audioElement.duration);
+    const audioEl = document.getElementById("audio-element");
+    const durationEl = document.getElementById("audio-duration");
+    if (audioEl && audioEl.duration && !isNaN(audioEl.duration) && durationEl) {
+      durationEl.textContent = formatTime(audioEl.duration);
     }
   };
 
@@ -1422,7 +1464,7 @@ const initAudioPlayer = async () => {
         return;
       }
 
-      if (isPlaying) {
+      if (!audioElement.paused) {
         audioElement.pause();
         isPlaying = false;
         currentBtn.innerHTML = Icons.play();
@@ -1510,8 +1552,10 @@ const initAudioPlayer = async () => {
                           "audio-play-pause-btn"
                         );
                         if (currentBtn) currentBtn.innerHTML = Icons.pause();
+                        updateProgress();
                       })
                       .catch((error) => {
+                        isPlaying = false;
                         showToast(
                           `Không thể phát nhạc: ${
                             error.message || "Lỗi không xác định"
@@ -1615,8 +1659,10 @@ const initAudioPlayer = async () => {
                     "audio-play-pause-btn"
                   );
                   if (currentBtn) currentBtn.innerHTML = Icons.pause();
+                  updateProgress();
                 })
                 .catch((error) => {
+                  isPlaying = false;
                   showToast(
                     "Không thể phát nhạc. Vui lòng kiểm tra lại URL.",
                     "error"
@@ -1674,19 +1720,50 @@ const initAudioPlayer = async () => {
   }
 
   // Audio events
-  audioElement.addEventListener("timeupdate", updateProgress);
-  audioElement.addEventListener("loadedmetadata", () => {
+  audioElement.removeEventListener("timeupdate", updateProgress);
+  const handleTimeUpdate = () => {
+    updateProgress();
+  };
+  audioElement.removeEventListener("timeupdate", handleTimeUpdate);
+  audioElement.addEventListener("timeupdate", handleTimeUpdate);
+
+  const handleLoadedMetadata = () => {
     updateDuration();
-  });
-  audioElement.addEventListener("canplay", () => {
+  };
+  audioElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
+  audioElement.addEventListener("loadedmetadata", handleLoadedMetadata);
+
+  const handleCanPlay = () => {
     updateDuration();
-  });
-  audioElement.addEventListener("loadstart", () => {
+  };
+  audioElement.removeEventListener("canplay", handleCanPlay);
+  audioElement.addEventListener("canplay", handleCanPlay);
+
+  const handleLoadStart = () => {
     if (currentTimeEl) currentTimeEl.textContent = "0:00";
     if (durationEl) durationEl.textContent = "0:00";
-  });
+  };
+  audioElement.removeEventListener("loadstart", handleLoadStart);
+  audioElement.addEventListener("loadstart", handleLoadStart);
+
   audioElement.addEventListener("progress", () => {});
-  audioElement.addEventListener("error", (e) => {
+
+  const handlePlay = () => {
+    isPlaying = true;
+    const playBtn = document.getElementById("audio-play-pause-btn");
+    if (playBtn) playBtn.innerHTML = Icons.pause();
+  };
+  audioElement.removeEventListener("play", handlePlay);
+  audioElement.addEventListener("play", handlePlay);
+
+  const handlePause = () => {
+    isPlaying = false;
+    const playBtn = document.getElementById("audio-play-pause-btn");
+    if (playBtn) playBtn.innerHTML = Icons.play();
+  };
+  audioElement.removeEventListener("pause", handlePause);
+  audioElement.addEventListener("pause", handlePause);
+  const handleError = (e) => {
     const error = audioElement.error;
     if (error) {
       let errorMsg = "Không thể phát nhạc";
@@ -1706,22 +1783,24 @@ const initAudioPlayer = async () => {
       }
       showToast(errorMsg, "error");
     }
-  });
-  audioElement.addEventListener("ended", () => {
+  };
+  audioElement.removeEventListener("error", handleError);
+  audioElement.addEventListener("error", handleError);
+
+  const handleEnded = () => {
     isPlaying = false;
     const currentBtn = document.getElementById("audio-play-pause-btn");
     if (currentBtn) {
       currentBtn.innerHTML = Icons.play();
     }
-    // Handle repeat mode
     if (repeatMode === 2) {
       audioElement.currentTime = 0;
       audioElement.play();
     } else if (repeatMode === 1) {
-      // Play next song (if available)
-      // TODO: Implement playlist functionality
     }
-  });
+  };
+  audioElement.removeEventListener("ended", handleEnded);
+  audioElement.addEventListener("ended", handleEnded);
 
   // Initialize volume
   if (audioElement) {
@@ -1805,6 +1884,7 @@ const initAudioPlayer = async () => {
     };
   }
 
+  audioElement.setAttribute("data-listeners-attached", "true");
   audioPlayerInitialized = true;
 };
 
