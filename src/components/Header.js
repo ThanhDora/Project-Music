@@ -8,7 +8,7 @@ function Header() {
   const barsIcon = Icons.bars();
   const user = getCurrentUser();
   const authenticated = isAuthenticated();
-  const avatarImg = "./src/assets/images/logo.svg";
+  const avatarImg = user?.avatar || "./src/assets/images/git.jpg";
   const userName = user?.name || "Guest";
 
   return `

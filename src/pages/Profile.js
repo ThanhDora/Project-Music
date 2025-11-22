@@ -1,5 +1,11 @@
 import { Icons } from "../utils/Icons";
-import { getCurrentUser, updateProfile, changePassword, logout, isAuthenticated } from "../utils/Request";
+import {
+  getCurrentUser,
+  updateProfile,
+  changePassword,
+  logout,
+  isAuthenticated,
+} from "../utils/Request";
 import { getImageUrl } from "../utils/helpers";
 import { setCurrentPage } from "../router/router";
 
@@ -18,9 +24,18 @@ async function Profile() {
   }
 
   const user = getCurrentUser();
-  const editIcon = Icons.edit || (() => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`);
-  const saveIcon = Icons.save || (() => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
-  const lockIcon = Icons.lock || (() => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>`);
+  const editIcon =
+    Icons.edit ||
+    (() =>
+      `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>`);
+  const saveIcon =
+    Icons.save ||
+    (() =>
+      `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`);
+  const lockIcon =
+    Icons.lock ||
+    (() =>
+      `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>`);
 
   return `
     <section class="w-full flex flex-col items-center py-10">
@@ -37,19 +52,25 @@ async function Profile() {
               <img src="${getImageUrl(user)}" 
                 alt="avatar" 
                 class="w-32 h-32 rounded-full object-cover border-4 border-white/20"
-                onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
+                onerror="this.onerror=null; this.src='./src/assets/images/git.jpg'">
               <button id="change-avatar-btn" class="absolute bottom-0 right-0 p-2 bg-white text-black rounded-full hover:bg-white/90 transition-colors">
                 ${editIcon()}
               </button>
             </div>
             
             <div class="flex-1">
-              <h2 class="text-3xl font-bold text-white mb-2">${user?.name || "Chưa có tên"}</h2>
+              <h2 class="text-3xl font-bold text-white mb-2">${
+                user?.name || "Chưa có tên"
+              }</h2>
               <p class="text-white/70 text-lg mb-4">${user?.email || ""}</p>
               <div class="flex flex-wrap gap-4 text-sm">
                 <div>
                   <span class="text-white/50">Ngày tham gia:</span>
-                  <span class="text-white ml-2">${user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : "N/A"}</span>
+                  <span class="text-white ml-2">${
+                    user?.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString("vi-VN")
+                      : "N/A"
+                  }</span>
                 </div>
               </div>
             </div>
@@ -67,13 +88,17 @@ async function Profile() {
           <form id="profile-form" class="flex flex-col gap-4">
             <div class="flex flex-col gap-2">
               <label class="text-white/70 text-sm">Tên</label>
-              <input type="text" id="profile-name" value="${user?.name || ""}" required
+              <input type="text" id="profile-name" value="${
+                user?.name || ""
+              }" required
                 class="px-4 py-2 bg-[#2a2a2a] border border-white/20 text-white rounded-lg outline-none focus:border-white/60 transition-colors">
             </div>
             
             <div class="flex flex-col gap-2">
               <label class="text-white/70 text-sm">Email</label>
-              <input type="email" id="profile-email" value="${user?.email || ""}" required
+              <input type="email" id="profile-email" value="${
+                user?.email || ""
+              }" required
                 class="px-4 py-2 bg-[#2a2a2a] border border-white/20 text-white rounded-lg outline-none focus:border-white/60 transition-colors">
             </div>
 
@@ -132,4 +157,3 @@ async function Profile() {
 }
 
 export default Profile;
-
