@@ -244,7 +244,6 @@ const initNavigation = () => {
   const navigateToPage = async (route, params = {}) => {
     if (!route) return;
 
-    console.log("Navigating to:", route, "with params:", params);
     setCurrentPage(route, params);
     const mainContent = document.getElementById("main-content");
     if (mainContent) {
@@ -264,7 +263,6 @@ const initNavigation = () => {
           `;
         }
       } catch (error) {
-        console.error("Error loading page:", error);
         mainContent.innerHTML = `
           <div class="w-full flex items-center justify-center py-20">
             <div class="text-white text-center">
@@ -312,14 +310,10 @@ const initNavigation = () => {
                   JSON.stringify(songData)
                 );
                 await updateFooterWithSong(songData);
-              } catch (e) {
-                console.warn("Failed to parse fallback data for footer:", e);
-              }
+              } catch (e) {}
             }
           }
-        } catch (error) {
-          console.error("Error loading song for footer:", error);
-        }
+        } catch (error) {}
       }
     }, 200);
   };
@@ -385,7 +379,6 @@ const initNavigation = () => {
       e.stopPropagation();
       const songId = songCard.getAttribute("data-song-id");
       const songDataStr = songCard.getAttribute("data-song-data");
-      console.log("Song card clicked, ID:", songId);
 
       if (songId && songId.trim() !== "") {
         // Store song data in sessionStorage as fallback
@@ -400,9 +393,7 @@ const initNavigation = () => {
             );
             // Update Footer immediately
             updateFooterWithSong(songData);
-          } catch (e) {
-            console.warn("Failed to parse song data:", e);
-          }
+          } catch (e) {}
         }
         navigateToPage("song-details", { songId });
         const searchResults = document.getElementById("search-results");
@@ -410,7 +401,6 @@ const initNavigation = () => {
           searchResults.classList.add("hidden");
         }
       } else {
-        console.warn("Song ID is empty or invalid");
         showToast("Không tìm thấy ID bài hát", "error");
       }
     }
@@ -420,11 +410,9 @@ const initNavigation = () => {
       e.preventDefault();
       e.stopPropagation();
       const videoId = videoCard.getAttribute("data-video-id");
-      console.log("Video card clicked, ID:", videoId);
       if (videoId && videoId.trim() !== "") {
         navigateToPage("video-details", { videoId });
       } else {
-        console.warn("Video ID is empty or invalid");
         showToast("Không tìm thấy ID video", "error");
       }
     }
@@ -434,11 +422,9 @@ const initNavigation = () => {
       e.preventDefault();
       e.stopPropagation();
       const albumSlug = albumCard.getAttribute("data-album-slug");
-      console.log("Album card clicked, slug:", albumSlug);
       if (albumSlug && albumSlug.trim() !== "") {
         navigateToPage("album-details", { albumSlug });
       } else {
-        console.warn("Album slug is empty or invalid");
         showToast("Không tìm thấy slug album", "error");
       }
     }
@@ -579,7 +565,6 @@ const initProfile = () => {
         modal.classList.remove("hidden");
         modal.classList.add("flex");
       } else {
-        console.error("Login modal not found in DOM");
       }
     };
   }
@@ -601,7 +586,6 @@ const initProfile = () => {
 
       try {
         const result = await updateProfile(name, email);
-        console.log("Update profile result:", result);
 
         if (result) {
           // Check if update was successful (API might return different formats)
@@ -651,7 +635,6 @@ const initProfile = () => {
           showToast(errorMsg, "error");
         }
       } catch (error) {
-        console.error("Update profile error:", error);
         const errorMsg = error.message || "Cập nhật thất bại";
         if (messageEl) {
           messageEl.textContent = errorMsg;
@@ -737,7 +720,6 @@ const initProfile = () => {
           await logout();
           window.location.reload();
         } catch (error) {
-          console.error("Logout error:", error);
           window.location.reload();
         }
       }
@@ -932,21 +914,14 @@ const updateFooterWithSong = async (song) => {
                   audioElement.removeAttribute("src");
                   // Set new src
                   audioElement.src = blobUrl;
-                  console.log("Audio src set to blob URL:", blobUrl);
                   audioElement.load();
                 }
               } catch (e) {
-                console.error("Error getting blob URL:", e);
                 showToast("Không thể tải nhạc do lỗi CORS", "error");
               }
 
               // Add error handler
               const errorHandler = (e) => {
-                console.error("Audio error:", {
-                  code: audioElement.error?.code,
-                  message: audioElement.error?.message,
-                  src: audioElement.src,
-                });
                 showToast(
                   "Không thể phát nhạc: Định dạng không được hỗ trợ",
                   "error"
@@ -965,7 +940,6 @@ const updateFooterWithSong = async (song) => {
                       "audio-play-pause-btn"
                     );
                     if (playBtn) playBtn.innerHTML = Icons.pause();
-                    console.log("Audio playing successfully!");
                   } else {
                     audioElement.addEventListener(
                       "canplay",
@@ -976,20 +950,12 @@ const updateFooterWithSong = async (song) => {
                             "audio-play-pause-btn"
                           );
                           if (playBtn) playBtn.innerHTML = Icons.pause();
-                          console.log("Audio playing after canplay event!");
-                        } catch (e) {
-                          console.log("Auto-play prevented:", e);
-                        }
+                        } catch (e) {}
                       },
                       { once: true }
                     );
                   }
-                } catch (e) {
-                  console.log(
-                    "Auto-play prevented, user interaction required:",
-                    e
-                  );
-                }
+                } catch (e) {}
               };
 
               playAudio();
@@ -998,9 +964,7 @@ const updateFooterWithSong = async (song) => {
         }
       }, 100);
     }
-  } catch (error) {
-    console.error("Error updating footer:", error);
-  }
+  } catch (error) {}
 };
 
 const render = async () => {
@@ -1037,9 +1001,7 @@ const render = async () => {
             await updateFooterWithSong(song);
           }
         }
-      } catch (error) {
-        console.error("Error loading song for footer on reload:", error);
-      }
+      } catch (error) {}
     }
   }, 200);
 };
@@ -1082,7 +1044,6 @@ const initSongDetails = () => {
           await trackPlayEvent(songId, null, null);
           showToast("Đang phát bài hát", "success");
         } catch (error) {
-          console.error("Error playing song:", error);
           showToast("Không thể phát bài hát", "error");
         }
       } else {
@@ -1180,21 +1141,14 @@ const initSongDetails = () => {
                       audioElement.removeAttribute("src");
                       // Set new src
                       audioElement.src = blobUrl;
-                      console.log("Audio src set to blob URL:", blobUrl);
                       audioElement.load();
                     }
                   } catch (e) {
-                    console.error("Error getting blob URL:", e);
                     showToast("Không thể tải nhạc do lỗi CORS", "error");
                   }
 
                   // Add error handler
                   const errorHandler = (e) => {
-                    console.error("Audio error:", {
-                      code: audioElement.error?.code,
-                      message: audioElement.error?.message,
-                      src: audioElement.src,
-                    });
                     showToast(
                       "Không thể phát nhạc: Định dạng không được hỗ trợ",
                       "error"
@@ -1213,7 +1167,6 @@ const initSongDetails = () => {
                           "audio-play-pause-btn"
                         );
                         if (playBtn) playBtn.innerHTML = Icons.pause();
-                        console.log("Audio playing successfully!");
                       } else {
                         audioElement.addEventListener(
                           "canplay",
@@ -1224,20 +1177,12 @@ const initSongDetails = () => {
                                 "audio-play-pause-btn"
                               );
                               if (playBtn) playBtn.innerHTML = Icons.pause();
-                              console.log("Audio playing after canplay event!");
-                            } catch (e) {
-                              console.log("Auto-play prevented:", e);
-                            }
+                            } catch (e) {}
                           },
                           { once: true }
                         );
                       }
-                    } catch (e) {
-                      console.log(
-                        "Auto-play prevented, user interaction required:",
-                        e
-                      );
-                    }
+                    } catch (e) {}
                   };
 
                   playAudio();
@@ -1245,9 +1190,7 @@ const initSongDetails = () => {
               }
             }, 200);
           }
-        } catch (error) {
-          console.error("Error loading song details:", error);
-        }
+        } catch (error) {}
         navigateToPage("song-details", { songId });
       }
     };
@@ -1347,14 +1290,6 @@ const initAudioPlayer = async () => {
     return;
   }
 
-  console.log("Initializing audio player", {
-    audioElement: !!audioElement,
-    playPauseBtn: !!playPauseBtn,
-    hasSource: !!audioElement.querySelector("source"),
-    audioSrc:
-      audioElement.src || audioElement.querySelector("source")?.src || "none",
-  });
-
   // Check if audio has source, if not try to set it
   const source = audioElement.querySelector("source");
   const currentSrc = audioElement.src || (source && source.src);
@@ -1383,14 +1318,11 @@ const initAudioPlayer = async () => {
                   JSON.stringify(songDetails)
                 );
               }
-            } catch (e) {
-              console.error("Error fetching song details for audioUrl:", e);
-            }
+            } catch (e) {}
           }
         }
 
         if (audioUrl) {
-          console.log("Setting initial audio URL:", audioUrl);
           // Try to get blob URL to avoid CORS
           try {
             const { getAudioBlobUrl } = await import("./utils/Request");
@@ -1403,21 +1335,14 @@ const initAudioPlayer = async () => {
               audioElement.removeAttribute("src");
               // Set new src
               audioElement.src = blobUrl;
-              console.log("Audio src set to blob URL:", blobUrl);
               audioElement.load();
             }
           } catch (e) {
-            console.error("Error getting blob URL:", e);
             showToast("Không thể tải nhạc do lỗi CORS", "error");
           }
 
           // Add error handler
           const errorHandler = (e) => {
-            console.error("Audio error:", {
-              code: audioElement.error?.code,
-              message: audioElement.error?.message,
-              src: audioElement.src,
-            });
             showToast(
               "Không thể phát nhạc: Định dạng không được hỗ trợ",
               "error"
@@ -1429,10 +1354,6 @@ const initAudioPlayer = async () => {
           audioElement.addEventListener(
             "loadedmetadata",
             () => {
-              console.log(
-                "Audio metadata loaded, duration:",
-                audioElement.duration
-              );
               const durationEl = document.getElementById("audio-duration");
               if (durationEl && audioElement.duration) {
                 const formatTime = (seconds) => {
@@ -1447,14 +1368,10 @@ const initAudioPlayer = async () => {
             { once: true }
           );
         } else {
-          console.warn("No audioUrl available for song");
         }
-      } catch (e) {
-        console.error("Error setting initial audio URL:", e);
-      }
+      } catch (e) {}
     }
   } else {
-    console.log("Audio already has source:", currentSrc);
   }
 
   let isPlaying = false;
@@ -1499,11 +1416,9 @@ const initAudioPlayer = async () => {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      console.log("Play button clicked!");
 
       const currentBtn = document.getElementById("audio-play-pause-btn");
       if (!currentBtn) {
-        console.error("Play button not found!");
         return;
       }
 
@@ -1515,14 +1430,6 @@ const initAudioPlayer = async () => {
         // Check if audio source exists
         const source = audioElement.querySelector("source");
         let currentSrc = audioElement.src || (source && source.src);
-
-        console.log("Play button clicked", {
-          hasSource: !!source,
-          sourceSrc: source?.src,
-          audioSrc: audioElement.src,
-          currentSrc: currentSrc,
-          readyState: audioElement.readyState,
-        });
 
         if (
           !currentSrc ||
@@ -1558,23 +1465,11 @@ const initAudioPlayer = async () => {
                         JSON.stringify(songDetails)
                       );
                     }
-                  } catch (e) {
-                    console.error(
-                      "Error fetching song details for audioUrl:",
-                      e
-                    );
-                  }
+                  } catch (e) {}
                 }
               }
 
               if (audioUrl) {
-                console.log("Setting audio URL:", audioUrl, {
-                  videoId: videoId,
-                  songId: songId,
-                  idToUse: idToUse,
-                  hasDirectUrl: !!song.audioUrl,
-                  audioType: song.audioType,
-                });
                 // Try to get blob URL to avoid CORS
                 try {
                   const { getAudioBlobUrl } = await import("./utils/Request");
@@ -1587,21 +1482,14 @@ const initAudioPlayer = async () => {
                     audioElement.removeAttribute("src");
                     // Set new src
                     audioElement.src = blobUrl;
-                    console.log("Audio src set to blob URL:", blobUrl);
                     audioElement.load();
                   }
                 } catch (e) {
-                  console.error("Error getting blob URL:", e);
                   showToast("Không thể tải nhạc do lỗi CORS", "error");
                 }
 
                 // Add error handler
                 const errorHandler = (e) => {
-                  console.error("Audio error:", {
-                    code: audioElement.error?.code,
-                    message: audioElement.error?.message,
-                    src: audioElement.src,
-                  });
                   showToast(
                     "Không thể phát nhạc: Định dạng không được hỗ trợ",
                     "error"
@@ -1613,19 +1501,10 @@ const initAudioPlayer = async () => {
 
                 // Wait for metadata before playing
                 const playAfterLoad = () => {
-                  console.log("Audio ready, attempting to play...", {
-                    readyState: audioElement.readyState,
-                    src: audioElement.src,
-                    duration: audioElement.duration,
-                    networkState: audioElement.networkState,
-                    paused: audioElement.paused,
-                  });
-
                   if (audioElement.paused) {
                     audioElement
                       .play()
                       .then(() => {
-                        console.log("Audio playing successfully!");
                         isPlaying = true;
                         const currentBtn = document.getElementById(
                           "audio-play-pause-btn"
@@ -1633,14 +1512,6 @@ const initAudioPlayer = async () => {
                         if (currentBtn) currentBtn.innerHTML = Icons.pause();
                       })
                       .catch((error) => {
-                        console.error("Error playing audio:", error);
-                        console.error("Audio error details:", {
-                          code: audioElement.error?.code,
-                          message: audioElement.error?.message,
-                          networkState: audioElement.networkState,
-                          readyState: audioElement.readyState,
-                          src: audioElement.src,
-                        });
                         showToast(
                           `Không thể phát nhạc: ${
                             error.message || "Lỗi không xác định"
@@ -1649,7 +1520,6 @@ const initAudioPlayer = async () => {
                         );
                       });
                   } else {
-                    console.log("Audio already playing");
                   }
                 };
 
@@ -1658,28 +1528,15 @@ const initAudioPlayer = async () => {
                   if (audioElement.readyState >= 2) {
                     playAfterLoad();
                   } else {
-                    console.log("Audio not ready yet, waiting...", {
-                      readyState: audioElement.readyState,
-                    });
                   }
                 };
 
                 // Try to play immediately if ready, otherwise wait for events
                 if (audioElement.readyState >= 2) {
-                  console.log("Audio already ready, playing immediately");
                   playAfterLoad();
                 } else {
-                  console.log(
-                    "Waiting for audio to load, readyState:",
-                    audioElement.readyState
-                  );
-
                   // Listen for multiple events to ensure we catch when audio is ready
                   const eventHandler = () => {
-                    console.log(
-                      "Audio load event fired, readyState:",
-                      audioElement.readyState
-                    );
                     if (audioElement.readyState >= 2) {
                       playAfterLoad();
                     }
@@ -1699,10 +1556,6 @@ const initAudioPlayer = async () => {
                   audioElement.addEventListener(
                     "loadedmetadata",
                     () => {
-                      console.log(
-                        "Metadata loaded, duration:",
-                        audioElement.duration
-                      );
                       if (audioElement.readyState >= 2) {
                         playAfterLoad();
                       }
@@ -1712,14 +1565,7 @@ const initAudioPlayer = async () => {
 
                   // Fallback timeout - try to play after 3 seconds
                   setTimeout(() => {
-                    console.log(
-                      "Fallback timeout, readyState:",
-                      audioElement.readyState,
-                      "isPlaying:",
-                      isPlaying
-                    );
                     if (!isPlaying && audioElement.readyState >= 1) {
-                      console.log("Attempting to play after timeout");
                       playAfterLoad();
                     }
                   }, 3000);
@@ -1727,11 +1573,9 @@ const initAudioPlayer = async () => {
                 return;
               }
             } catch (e) {
-              console.error("Error getting audio URL:", e);
               showToast("Không thể lấy URL phát nhạc", "error");
             }
           } else {
-            console.warn("No song in localStorage");
             showToast("Chưa có bài hát để phát", "info");
           }
         }
@@ -1744,12 +1588,10 @@ const initAudioPlayer = async () => {
           currentSrc !== window.location.href &&
           currentSrc !== ""
         ) {
-          console.log("Playing existing audio:", currentSrc);
           if (audioElement.readyState >= 2) {
             audioElement
               .play()
               .then(() => {
-                console.log("Audio playing successfully");
                 isPlaying = true;
                 const currentBtn = document.getElementById(
                   "audio-play-pause-btn"
@@ -1757,7 +1599,6 @@ const initAudioPlayer = async () => {
                 if (currentBtn) currentBtn.innerHTML = Icons.pause();
               })
               .catch((error) => {
-                console.error("Error playing audio:", error);
                 showToast(
                   "Không thể phát nhạc. Vui lòng kiểm tra lại URL.",
                   "error"
@@ -1769,7 +1610,6 @@ const initAudioPlayer = async () => {
               audioElement
                 .play()
                 .then(() => {
-                  console.log("Audio playing successfully");
                   isPlaying = true;
                   const currentBtn = document.getElementById(
                     "audio-play-pause-btn"
@@ -1777,7 +1617,6 @@ const initAudioPlayer = async () => {
                   if (currentBtn) currentBtn.innerHTML = Icons.pause();
                 })
                 .catch((error) => {
-                  console.error("Error playing audio:", error);
                   showToast(
                     "Không thể phát nhạc. Vui lòng kiểm tra lại URL.",
                     "error"
@@ -1792,7 +1631,6 @@ const initAudioPlayer = async () => {
             });
           }
         } else {
-          console.warn("No audio source available", { currentSrc });
           showToast("Chưa có bài hát để phát", "info");
         }
       }
@@ -1838,33 +1676,17 @@ const initAudioPlayer = async () => {
   // Audio events
   audioElement.addEventListener("timeupdate", updateProgress);
   audioElement.addEventListener("loadedmetadata", () => {
-    console.log("Audio metadata loaded", {
-      duration: audioElement.duration,
-      readyState: audioElement.readyState,
-    });
     updateDuration();
   });
   audioElement.addEventListener("canplay", () => {
-    console.log("Audio can play", {
-      duration: audioElement.duration,
-      readyState: audioElement.readyState,
-    });
     updateDuration();
   });
   audioElement.addEventListener("loadstart", () => {
-    console.log("Audio load started");
     if (currentTimeEl) currentTimeEl.textContent = "0:00";
     if (durationEl) durationEl.textContent = "0:00";
   });
-  audioElement.addEventListener("progress", () => {
-    console.log("Audio loading progress", {
-      buffered:
-        audioElement.buffered.length > 0 ? audioElement.buffered.end(0) : 0,
-      readyState: audioElement.readyState,
-    });
-  });
+  audioElement.addEventListener("progress", () => {});
   audioElement.addEventListener("error", (e) => {
-    console.error("Audio error event:", e);
     const error = audioElement.error;
     if (error) {
       let errorMsg = "Không thể phát nhạc";
@@ -1882,13 +1704,6 @@ const initAudioPlayer = async () => {
           errorMsg = "Định dạng không được hỗ trợ";
           break;
       }
-      console.error("Audio error details:", {
-        code: error.code,
-        message: errorMsg,
-        networkState: audioElement.networkState,
-        readyState: audioElement.readyState,
-        src: audioElement.src,
-      });
       showToast(errorMsg, "error");
     }
   });

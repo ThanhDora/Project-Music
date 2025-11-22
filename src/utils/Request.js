@@ -24,7 +24,19 @@ async function apiRequest(endpoint, options = {}) {
       },
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      if (!response.ok) {
+        return {
+          error: `API request failed: ${endpoint} - Status: ${response.status}`,
+          status: response.status,
+          data: null,
+        };
+      }
+      return null;
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -40,23 +52,19 @@ async function apiRequest(endpoint, options = {}) {
         errorMessage = data.message;
       }
 
-      // For 401 Unauthorized, return error object instead of throwing
       if (response.status === 401) {
         return { error: errorMessage, status: 401, data: data };
       }
 
-      // For other errors, return error object instead of throwing
-      const errorObj = {
+      return {
         error: errorMessage,
         status: response.status,
         data: data,
       };
-      return errorObj;
     }
 
     return data;
   } catch (error) {
-    // Return error object if it's an API error response
     if (error.data && error.data.error) {
       return {
         error: error.data.error,
@@ -127,70 +135,37 @@ export async function getProfile() {
 }
 
 export async function updateProfile(name, email) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
-      method: "PATCH",
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ name, email }),
-    });
+  const data = await apiRequest("/auth/me", {
+    method: "PATCH",
+    body: JSON.stringify({ name, email }),
+  });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-      }
-
-      let errorMessage = `Update profile failed: Status ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch (e) {
-        // Ignore JSON parse error
-      }
-
-      throw new Error(errorMessage);
-    }
-
-    const data = await response.json();
-
-    // Update user in localStorage - handle different response formats
-    if (data && data.user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    } else if (data && (data.name || data.email)) {
-      // If API returns updated user data directly
-      const currentUser = getCurrentUser();
-      const updatedUser = {
-        ...currentUser,
-        name: data.name || currentUser?.name,
-        email: data.email || currentUser?.email,
-        ...data,
-      };
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-    }
-
-    return data;
-  } catch (error) {
-    throw error;
+  if (data && data.error) {
+    throw new Error(data.error);
   }
+
+  if (data && data.user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  } else if (data && (data.name || data.email)) {
+    const currentUser = getCurrentUser();
+    const updatedUser = {
+      ...currentUser,
+      name: data.name || currentUser?.name,
+      email: data.email || currentUser?.email,
+      ...data,
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+  }
+
+  return data;
 }
 
 export async function changePassword(oldPassword, password, confirmPassword) {
-  try {
-    const data = await apiRequest("/auth/change-password", {
-      method: "PATCH",
-      body: JSON.stringify({ oldPassword, password, confirmPassword }),
-    });
-
-    if (data && data.message) {
-      return data;
-    }
-    return data;
-  } catch (error) {
-    throw error;
-  }
+  const data = await apiRequest("/auth/change-password", {
+    method: "PATCH",
+    body: JSON.stringify({ oldPassword, password, confirmPassword }),
+  });
+  return data;
 }
 
 export async function refreshToken() {
@@ -228,7 +203,9 @@ export async function searchSongs(query, limit = 20, page = 1) {
     const data = await apiRequest(
       `/search?q=${encodeURIComponent(query)}&limit=${limit}&page=${page}`
     );
-    // Handle different response formats
+    if (data && data.error) {
+      return [];
+    }
     if (Array.isArray(data)) {
       return data;
     }
@@ -256,7 +233,9 @@ export async function getSearchSuggestions(query) {
     const data = await apiRequest(
       `/search/suggestions?q=${encodeURIComponent(query)}`
     );
-    // Handle different response formats
+    if (data && data.error) {
+      return [];
+    }
     if (Array.isArray(data)) {
       return data;
     }
@@ -581,27 +560,12 @@ export function getPlaylists() {
 export async function getAudioBlobUrl(audioUrl) {
   if (!audioUrl) return null;
 
-  // List of CORS proxy services to try
   const proxyServices = [
     `https://api.allorigins.win/raw?url=${encodeURIComponent(audioUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(audioUrl)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(audioUrl)}`,
   ];
 
-  // Try direct fetch first (without CORS mode to avoid preflight)
-  try {
-    const response = await fetch(audioUrl, {
-      method: "GET",
-      mode: "no-cors", // Use no-cors to avoid CORS check
-    });
-
-    // With no-cors, we can't read the response, so try with blob directly
-    // Actually, let's try with cors first, then fallback
-  } catch (error) {
-    console.warn("Direct fetch with no-cors failed:", error.message);
-  }
-
-  // Try direct fetch with cors mode
   try {
     const response = await fetch(audioUrl, {
       method: "GET",
@@ -611,17 +575,10 @@ export async function getAudioBlobUrl(audioUrl) {
     if (response.ok) {
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
-      console.log("Successfully created blob URL from direct fetch");
       return blobUrl;
     }
-  } catch (error) {
-    console.warn(
-      "Direct fetch with CORS failed, trying proxies:",
-      error.message
-    );
-  }
+  } catch (error) {}
 
-  // Try each CORS proxy service
   for (const proxyUrl of proxyServices) {
     try {
       const response = await fetch(proxyUrl, {
@@ -632,17 +589,13 @@ export async function getAudioBlobUrl(audioUrl) {
       if (response.ok) {
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
-        console.log("Successfully created blob URL from proxy:", proxyUrl);
         return blobUrl;
       }
     } catch (proxyError) {
-      console.warn("Proxy failed:", proxyUrl, proxyError.message);
-      continue; // Try next proxy
+      continue;
     }
   }
 
-  // All methods failed
-  console.error("All methods failed to fetch audio, cannot create blob URL");
   return null;
 }
 

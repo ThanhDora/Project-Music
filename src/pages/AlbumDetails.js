@@ -12,9 +12,7 @@ async function AlbumDetails(albumSlug) {
   const threeDotsVerticalIcon = Icons.threeDotsVertical();
 
   try {
-    console.log("Loading album details for slug:", albumSlug);
     const album = await getAlbumDetails(albumSlug);
-    console.log("Album details received:", album);
 
     if (!album) {
       return `<div class="w-full flex items-center justify-center py-20">
@@ -97,7 +95,6 @@ async function AlbumDetails(albumSlug) {
     </section>
   `;
   } catch (error) {
-    console.error("Error loading album details:", error);
     return `<div class="w-full flex items-center justify-center py-20">
       <div class="text-white text-center">
         <p class="text-xl mb-2">Có lỗi xảy ra khi tải thông tin album</p>

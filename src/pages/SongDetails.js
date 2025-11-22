@@ -18,20 +18,15 @@ async function SongDetails(songId) {
   const addIcon = Icons.add();
 
   try {
-    console.log("Loading song details for ID:", songId);
     let song = await getSongDetails(songId);
-    console.log("Song details received:", song);
 
     if (!song || (song && song.error)) {
       const fallbackData = sessionStorage.getItem("currentSongData");
       if (fallbackData) {
         try {
           song = JSON.parse(fallbackData);
-          console.log("Using fallback song data:", song);
           sessionStorage.removeItem("currentSongData");
-        } catch (e) {
-          console.warn("Failed to parse fallback data:", e);
-        }
+        } catch (e) {}
       }
     }
 
@@ -46,9 +41,7 @@ async function SongDetails(songId) {
           if (storedSongId === songId) {
             song = parsedSong;
           }
-        } catch (e) {
-          console.warn("Failed to parse stored song:", e);
-        }
+        } catch (e) {}
       }
     }
 
@@ -321,7 +314,6 @@ async function SongDetails(songId) {
     </section>
   `;
   } catch (error) {
-    console.error("Error loading song details:", error);
     return `<div class="w-full flex items-center justify-center py-20">
       <div class="text-white text-center">
         <p class="text-xl mb-2">Có lỗi xảy ra khi tải thông tin bài hát</p>
