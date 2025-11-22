@@ -551,52 +551,9 @@ export function getPlaylists() {
   }
 }
 
-/**
- * Fetch audio and create blob URL to avoid CORS issues
- * Uses CORS proxy if direct fetch fails
- * @param {string} audioUrl - The original audio URL
- * @returns {Promise<string>} - Blob URL or null if all methods fail
- */
-export async function getAudioBlobUrl(audioUrl) {
+export function getAudioBlobUrl(audioUrl) {
   if (!audioUrl) return null;
-
-  const proxyServices = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(audioUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(audioUrl)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(audioUrl)}`,
-  ];
-
-  try {
-    const response = await fetch(audioUrl, {
-      method: "GET",
-      mode: "cors",
-    });
-
-    if (response.ok) {
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      return blobUrl;
-    }
-  } catch (error) {}
-
-  for (const proxyUrl of proxyServices) {
-    try {
-      const response = await fetch(proxyUrl, {
-        method: "GET",
-        mode: "cors",
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        return blobUrl;
-      }
-    } catch (proxyError) {
-      continue;
-    }
-  }
-
-  return null;
+  return audioUrl;
 }
 
 export async function createPlaylistAPI(playlist) {
