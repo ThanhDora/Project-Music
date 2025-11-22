@@ -441,11 +441,16 @@ export async function getExploreMeta() {
 export async function getChartsVideos(
   country = "GLOBAL",
   period = "latest",
-  limit = 20
+  limit = 50,
+  sort = "-views"
 ) {
-  return await apiRequest(
-    `/charts/videos?country=${country}&period=${period}&limit=${limit}`
-  );
+  const params = new URLSearchParams({
+    country,
+    period,
+    limit: limit.toString(),
+    sort,
+  });
+  return await apiRequest(`/charts/videos?${params.toString()}`);
 }
 
 export async function getChartsTopArtists(
@@ -466,8 +471,20 @@ export async function getCategories(limit = 20, sort = "-popularity") {
   return await apiRequest(`/categories?limit=${limit}&sort=${sort}`);
 }
 
-export async function getCategoryDetails(slug, subLimit = 10) {
-  return await apiRequest(`/categories/${slug}?subLimit=${subLimit}`);
+export async function getCategoryDetails(
+  slug,
+  subLimit = 10,
+  playlistLimit = 6,
+  subSort = "name",
+  playlistSort = "popularity"
+) {
+  const params = new URLSearchParams({
+    subLimit: subLimit.toString(),
+    playlistLimit: playlistLimit.toString(),
+    subSort,
+    playlistSort,
+  });
+  return await apiRequest(`/categories/${slug}?${params.toString()}`);
 }
 
 export async function getMoods(limit = 20, sort = "-popularity") {
@@ -487,8 +504,13 @@ export async function getMoodDetails(slug) {
   return await apiRequest(`/moods/${slug}`);
 }
 
-export async function getQuickPicks(mood, limit = 12) {
-  return await apiRequest(`/quick-picks?mood=${mood}&limit=${limit}`);
+export async function getQuickPicks(mood, country = "GLOBAL", limit = 12) {
+  const params = new URLSearchParams({
+    mood,
+    country,
+    limit: limit.toString(),
+  });
+  return await apiRequest(`/quick-picks?${params.toString()}`);
 }
 
 export async function getLines(limit = 50) {
@@ -523,10 +545,21 @@ export async function getPlaylistsByCountry(country = "GLOBAL", limit = 12) {
   );
 }
 
-export async function trackPlayEvent(videoId, songId, playlistId) {
+export async function trackPlayEvent(
+  songId = null,
+  albumId = null,
+  playlistId = null,
+  playedAt = null
+) {
+  const body = {};
+  if (songId) body.songId = songId;
+  if (albumId) body.albumId = albumId;
+  if (playlistId) body.playlistId = playlistId;
+  if (playedAt) body.playedAt = playedAt;
+
   return await apiRequest("/events/play", {
     method: "POST",
-    body: JSON.stringify({ videoId, songId, playlistId }),
+    body: JSON.stringify(body),
   });
 }
 
@@ -537,6 +570,80 @@ export function getPlaylists() {
   } catch (error) {
     return [];
   }
+}
+
+/**
+ * Fetch audio and create blob URL to avoid CORS issues
+ * Uses CORS proxy if direct fetch fails
+ * @param {string} audioUrl - The original audio URL
+ * @returns {Promise<string>} - Blob URL or null if all methods fail
+ */
+export async function getAudioBlobUrl(audioUrl) {
+  if (!audioUrl) return null;
+
+  // List of CORS proxy services to try
+  const proxyServices = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(audioUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(audioUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(audioUrl)}`,
+  ];
+
+  // Try direct fetch first (without CORS mode to avoid preflight)
+  try {
+    const response = await fetch(audioUrl, {
+      method: "GET",
+      mode: "no-cors", // Use no-cors to avoid CORS check
+    });
+
+    // With no-cors, we can't read the response, so try with blob directly
+    // Actually, let's try with cors first, then fallback
+  } catch (error) {
+    console.warn("Direct fetch with no-cors failed:", error.message);
+  }
+
+  // Try direct fetch with cors mode
+  try {
+    const response = await fetch(audioUrl, {
+      method: "GET",
+      mode: "cors",
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      console.log("Successfully created blob URL from direct fetch");
+      return blobUrl;
+    }
+  } catch (error) {
+    console.warn(
+      "Direct fetch with CORS failed, trying proxies:",
+      error.message
+    );
+  }
+
+  // Try each CORS proxy service
+  for (const proxyUrl of proxyServices) {
+    try {
+      const response = await fetch(proxyUrl, {
+        method: "GET",
+        mode: "cors",
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        console.log("Successfully created blob URL from proxy:", proxyUrl);
+        return blobUrl;
+      }
+    } catch (proxyError) {
+      console.warn("Proxy failed:", proxyUrl, proxyError.message);
+      continue; // Try next proxy
+    }
+  }
+
+  // All methods failed
+  console.error("All methods failed to fetch audio, cannot create blob URL");
+  return null;
 }
 
 export async function createPlaylistAPI(playlist) {

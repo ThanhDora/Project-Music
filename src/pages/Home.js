@@ -1,17 +1,18 @@
 import { Icons } from "../utils/Icons";
 import {
   getPersonalized,
-  getTodaysHits,
-  getHomeAlbumsForYou,
+  getExploreAlbums,
   getCurrentUser,
   getMoods,
+  getLines,
+  getLineSongs,
+  getLineVideos,
+  isAuthenticated,
 } from "../utils/Request";
 import { extractItems, getArtistName, getImageUrl } from "../utils/helpers";
 
 const renderSongCard = (song) => {
-  // Get the correct ID - prioritize videoId if available (for YouTube Music API)
-  const songId = song.videoId || song._id || song.id || "";
-  // Store full song data as JSON for fallback
+  const songId = song.videoId || song._id || song.id || song.name || "";
   const songData = JSON.stringify(song).replace(/"/g, "&quot;");
   return `
   <div data-song-id="${songId}" data-song-data="${songData}"
@@ -21,7 +22,7 @@ const renderSongCard = (song) => {
       onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
     <div class="flex flex-col gap-1 min-w-0 flex-1 h-full justify-center">
       <h5 class="text-white text-sm font-semibold leading-tight group-hover:text-white transition-colors truncate">
-        ${song.title || song.name || "Không có tiêu đề"}
+        ${song.name || song.title || "Không có tiêu đề"}
       </h5>
       <p class="text-white/60 text-xs leading-tight group-hover:text-white/80 transition-colors truncate">
         ${getArtistName(song)}
@@ -30,7 +31,7 @@ const renderSongCard = (song) => {
         ${song.views || song.plays || ""}
       </p>
       <p class="text-white/30 text-xs group-hover:text-white/50 transition-colors truncate">
-        ${song.album || ""}
+        ${song.albumName || song.album || ""}
       </p>
     </div>
   </div>
@@ -38,14 +39,16 @@ const renderSongCard = (song) => {
 };
 
 const renderVideoCard = (video) => `
-  <div data-video-id="${video._id || video.id || video.videoId || ""}" 
+  <div data-video-id="${
+    video.id || video._id || video.videoId || video.slug || ""
+  }" 
     class="min-w-[calc(25%-0.75rem)] flex flex-col gap-2 cursor-pointer group rounded-lg p-2 transition-all duration-200 hover:rounded-xl hover:bg-[#ffffff17] hover:scale-[1.02]">
     <img src="${getImageUrl(video)}" 
       alt="video" class="w-full aspect-video object-cover rounded-lg"
       onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
     <div class="flex flex-col gap-1">
       <h5 class="text-white text-base font-semibold leading-tight truncate">
-        ${video.title || video.name || "Không có tiêu đề"}
+        ${video.name || video.title || "Không có tiêu đề"}
       </h5>
       <div class="flex items-center gap-1">
         <p class="text-white/50 text-xs leading-tight truncate">${getArtistName(
@@ -60,7 +63,6 @@ const renderVideoCard = (video) => `
 `;
 
 const renderAlbumCard = (album) => {
-  // Get the correct identifier - prioritize slug, then _id, then id
   const albumSlug = album.slug || album._id || album.id || "";
   return `
   <div data-album-slug="${albumSlug}" 
@@ -71,11 +73,11 @@ const renderAlbumCard = (album) => {
       onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
     <div class="flex flex-col gap-2">
       <h5 class="text-white text-base font-semibold leading-tight truncate">
-        ${album.title || album.name || "Không có tiêu đề"}
+        ${album.name || album.title || "Không có tiêu đề"}
       </h5>
-      <p class="text-white/50 text-xs leading-tight truncate">${getArtistName(
-        album
-      )}</p>
+      <p class="text-white/50 text-xs leading-tight truncate">${
+        album.albumType || getArtistName(album)
+      }</p>
     </div>
   </div>
 `;
@@ -85,21 +87,83 @@ async function Home() {
   const chevronBackIcon = Icons.chevronBack();
   const navigateNextIcon = Icons.navigateNext();
   const userName = getCurrentUser()?.name || "Bạn";
+  const authenticated = isAuthenticated();
 
-  const [personalized, todaysHits, albumsForYou, moods] = await Promise.all([
+  const [personalized, exploreAlbums, moods, linesData] = await Promise.all([
     getPersonalized(48),
-    getTodaysHits("GLOBAL", 12),
-    getHomeAlbumsForYou("GLOBAL", 12),
+    getExploreAlbums(20),
     getMoods(20),
+    getLines(100),
   ]);
 
-  // Ensure personalized is not an error object
   const personalizedData =
     personalized && personalized.error ? { items: [] } : personalized;
-  const songs = extractItems(personalizedData);
-  const videos = extractItems(todaysHits);
-  const albums = extractItems(albumsForYou);
+  const albums = extractItems(exploreAlbums);
   const moodsList = extractItems(moods);
+  const linesList = extractItems(linesData);
+
+  let selectedLine = null;
+  let songs = [];
+  let videos = [];
+
+  if (linesList.length > 0) {
+    selectedLine = linesList[0];
+    const allLinesSongsPromises = linesList.map((line) => {
+      if (line.slug) {
+        return getLineSongs(line.slug, 200, "-popularity").catch(() => ({
+          items: [],
+        }));
+      }
+      return Promise.resolve({ items: [] });
+    });
+    const allLinesSongsResults = await Promise.all(allLinesSongsPromises);
+    const songMap = new Map();
+    allLinesSongsResults.forEach((result) => {
+      if (result && !result.error) {
+        const items = extractItems(result);
+        items.forEach((song) => {
+          const songId =
+            song._id ||
+            song.id ||
+            song.videoId ||
+            `${song.name || song.title || ""}_${
+              song.albumName || song.album || ""
+            }`;
+          if (songId && !songMap.has(songId)) {
+            songMap.set(songId, song);
+          }
+        });
+      }
+    });
+    songs = Array.from(songMap.values());
+
+    const allLinesVideosPromises = linesList.map((line) => {
+      if (line.slug) {
+        return getLineVideos(line.slug, 200, "-popularity").catch(() => ({
+          items: [],
+        }));
+      }
+      return Promise.resolve({ items: [] });
+    });
+    const allLinesVideosResults = await Promise.all(allLinesVideosPromises);
+    const videoMap = new Map();
+    allLinesVideosResults.forEach((result) => {
+      if (result && !result.error) {
+        const items = extractItems(result);
+        items.forEach((video) => {
+          const videoId = video.id || video._id || video.videoId || video.slug;
+          if (videoId && !videoMap.has(videoId)) {
+            videoMap.set(videoId, video);
+          }
+        });
+      }
+    });
+    videos = Array.from(videoMap.values());
+  }
+
+  if (songs.length === 0) {
+    songs = extractItems(personalizedData);
+  }
 
   if (songs.length === 0 && videos.length === 0 && albums.length === 0) {
     return `
@@ -131,6 +195,9 @@ async function Home() {
       </div>
       <!-- button view all -->
 
+      ${
+        authenticated
+          ? `
       <div class="w-[80%] flex items-center gap-4">
         <div class="flex-1 flex flex-col justify-start items-start">
           <p class="text-sm text-white/50 mb-2">NHỮNG BÁN NHẠC GIÚP BẠN LÀM QUEN</p>
@@ -182,6 +249,9 @@ async function Home() {
           }
         </div>
       </div>
+      `
+          : ""
+      }
       <!-- end item songs -->
 
       <div class="w-[80%] flex items-center gap-4">

@@ -50,15 +50,9 @@ async function Footer(song = null) {
     localStorage.setItem("currentPlayingSong", JSON.stringify(currentSong));
   }
 
-  // Get audio URL - try to use videoId first, then _id or id
-  let audioUrl = "";
-  const videoId = currentSong.videoId;
-  const songId = currentSong._id || currentSong.id;
-
-  const idToUse = videoId || songId;
-  if (idToUse) {
-    audioUrl = `${API_BASE_URL}/stream/${idToUse}`;
-  }
+  // Use audioUrl from API response
+  let audioUrl =
+    currentSong.audioUrl || currentSong.audio || currentSong.streamUrl || "";
 
   const songTitle = (
     currentSong.title ||
@@ -144,8 +138,7 @@ async function Footer(song = null) {
         </div>
       </div>
 
-      <audio id="audio-element" preload="auto" crossorigin="anonymous" style="display: none;">
-        ${audioUrl ? `<source src="${audioUrl}" type="audio/mpeg">` : ""}
+      <audio id="audio-element" preload="auto" style="display: none;">
         Your browser does not support the audio element.
       </audio>
     </footer>

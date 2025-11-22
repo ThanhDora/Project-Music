@@ -1,5 +1,10 @@
 import { Icons } from "../utils/Icons";
-import { getSongDetails, trackPlayEvent, fetchSongs, searchSongs } from "../utils/Request";
+import {
+  getSongDetails,
+  trackPlayEvent,
+  fetchSongs,
+  searchSongs,
+} from "../utils/Request";
 import { getImageUrl, getArtistName } from "../utils/helpers";
 
 async function SongDetails(songId) {
@@ -36,7 +41,8 @@ async function SongDetails(songId) {
       if (storedSong) {
         try {
           const parsedSong = JSON.parse(storedSong);
-          const storedSongId = parsedSong._id || parsedSong.id || parsedSong.videoId;
+          const storedSongId =
+            parsedSong._id || parsedSong.id || parsedSong.videoId;
           if (storedSongId === songId) {
             song = parsedSong;
           }
@@ -47,7 +53,8 @@ async function SongDetails(songId) {
     }
 
     if (!song || (song && song.error)) {
-      const errorMsg = song && song.error ? song.error : "Không tìm thấy bài hát";
+      const errorMsg =
+        song && song.error ? song.error : "Không tìm thấy bài hát";
       return `<div class="w-full flex items-center justify-center py-20">
         <div class="text-white text-center">
           <p class="text-xl mb-2">${errorMsg}</p>
@@ -57,27 +64,51 @@ async function SongDetails(songId) {
       </div>`;
     }
 
-    const relatedSongs = song.relatedSongs || song.similarSongs || song.related || [];
+    localStorage.setItem("currentPlayingSong", JSON.stringify(song));
+
+    const relatedSongs =
+      song.related || song.relatedSongs || song.similarSongs || [];
     const description = song.description || song.about || "";
     const lyrics = song.lyrics || "";
     const songTitle = song.title || song.name || "Không có tiêu đề";
     const artistName = getArtistName(song) || "";
 
-    // Fetch songs list for "TIẾP THEO" tab from API
+    const formatDuration = (seconds) => {
+      if (!seconds) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
+
     let nextSongs = [];
-    try {
-      const allSongs = await fetchSongs();
-      if (Array.isArray(allSongs) && allSongs.length > 0) {
-        // Filter out current song and get next songs
-        nextSongs = allSongs.filter(s => {
-          if (!s) return false;
-          const sId = s._id || s.id || s.videoId || "";
-          return sId && sId !== songId;
-        }).slice(0, 50);
+    let allAlbumTracks = [];
+    if (song.album && song.album.tracks && Array.isArray(song.album.tracks)) {
+      allAlbumTracks = song.album.tracks;
+      nextSongs = song.album.tracks
+        .filter((track) => {
+          if (!track) return false;
+          const trackId = track.id || track._id || "";
+          return trackId && trackId !== songId;
+        })
+        .slice(0, 50);
+    }
+
+    if (
+      nextSongs.length === 0 &&
+      song.playlists &&
+      Array.isArray(song.playlists) &&
+      song.playlists.length > 0
+    ) {
+      const playlistTracks = song.playlists[0].tracks || [];
+      if (Array.isArray(playlistTracks) && playlistTracks.length > 0) {
+        nextSongs = playlistTracks
+          .filter((track) => {
+            if (!track) return false;
+            const trackId = track.id || track._id || "";
+            return trackId && trackId !== songId;
+          })
+          .slice(0, 50);
       }
-    } catch (error) {
-      console.error("Error fetching songs for queue:", error);
-      nextSongs = [];
     }
 
     return `
@@ -91,7 +122,11 @@ async function SongDetails(songId) {
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-8">
           <div class="text-white">
             <h1 class="text-5xl font-bold mb-4 leading-tight">${songTitle}</h1>
-            ${description ? `<p class="text-xl mb-6 text-white/90">${description}</p>` : ""}
+            ${
+              description
+                ? `<p class="text-xl mb-6 text-white/90">${description}</p>`
+                : ""
+            }
             <p class="text-2xl font-bold">${artistName}</p>
           </div>
         </div>
@@ -151,18 +186,25 @@ async function SongDetails(songId) {
               <p class="text-white/60 text-sm truncate">${artistName}</p>
             </div>
             <div class="flex-shrink-0 text-white/60 text-sm">
-              ${song.duration || song.length || "0:00"}
+              ${formatDuration(song.duration || song.length)}
             </div>
           </div>
 
           <!-- Next Songs List from API -->
-          ${nextSongs.length > 0 ? nextSongs.map((nextSong) => {
-            const nextSongId = nextSong._id || nextSong.id || nextSong.videoId || "";
-            const nextTitle = nextSong.title || nextSong.name || "Không có tiêu đề";
-            const nextArtist = getArtistName(nextSong) || "";
-            const nextDuration = nextSong.duration || nextSong.length || "0:00";
-            
-            return `
+          ${
+            nextSongs.length > 0
+              ? nextSongs
+                  .map((nextSong) => {
+                    const nextSongId =
+                      nextSong._id || nextSong.id || nextSong.videoId || "";
+                    const nextTitle =
+                      nextSong.title || nextSong.name || "Không có tiêu đề";
+                    const nextArtist = getArtistName(nextSong) || "";
+                    const nextDuration = formatDuration(
+                      nextSong.duration || nextSong.length
+                    );
+
+                    return `
               <div class="song-item flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors" data-song-id="${nextSongId}">
                 <img src="${getImageUrl(nextSong)}" 
                   alt="song" 
@@ -177,33 +219,81 @@ async function SongDetails(songId) {
                 </div>
               </div>
             `;
-          }).join("") : `
+                  })
+                  .join("")
+              : allAlbumTracks.length > 0
+              ? allAlbumTracks
+                  .map((track) => {
+                    const trackId = track.id || track._id || "";
+                    const trackTitle =
+                      track.title || track.name || "Không có tiêu đề";
+                    const trackDuration = formatDuration(
+                      track.duration || track.length
+                    );
+                    const isCurrent = trackId === songId;
+
+                    return `
+              <div class="song-item flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors ${
+                isCurrent ? "bg-white/10" : ""
+              }" data-song-id="${trackId}">
+                <img src="${getImageUrl(track)}" 
+                  alt="song" 
+                  class="w-10 h-10 rounded object-cover shrink-0"
+                  onerror="this.onerror=null; this.src='/src/assets/images/git.jpg'">
+                <div class="flex-1 min-w-0">
+                  <h5 class="text-white font-medium truncate ${
+                    isCurrent ? "font-semibold" : ""
+                  }">${trackTitle}</h5>
+                  <p class="text-white/60 text-sm truncate">${
+                    getArtistName(track) || ""
+                  }</p>
+                </div>
+                <div class="shrink-0 text-white/60 text-sm">
+                  ${trackDuration}
+                </div>
+              </div>
+            `;
+                  })
+                  .join("")
+              : `
             <div class="text-white/50 text-center py-10">
               <p>Không có bài hát</p>
             </div>
-          `}
+          `
+          }
         </div>
 
         <!-- Lyrics Container (Hidden by default) -->
         <div id="lyrics-container" class="hidden flex-1 overflow-y-auto px-6 py-4">
-          ${lyrics ? `
+          ${
+            lyrics
+              ? `
             <div class="text-white whitespace-pre-wrap leading-relaxed">${lyrics}</div>
-          ` : `
+          `
+              : `
             <div class="text-white/50 text-center py-10">
               <p>Chưa có lời bài hát</p>
             </div>
-          `}
+          `
+          }
         </div>
 
         <!-- Related Container (Hidden by default) -->
         <div id="related-container" class="hidden flex-1 overflow-y-auto px-6 py-4">
-          ${relatedSongs.length > 0 ? relatedSongs.map((related) => {
-            const relatedSongId = related._id || related.id || related.videoId || "";
-            const relatedTitle = related.title || related.name || "Không có tiêu đề";
-            const relatedArtist = getArtistName(related) || "";
-            const relatedDuration = related.duration || related.length || "0:00";
-            
-            return `
+          ${
+            relatedSongs.length > 0
+              ? relatedSongs
+                  .map((related) => {
+                    const relatedSongId =
+                      related._id || related.id || related.videoId || "";
+                    const relatedTitle =
+                      related.title || related.name || "Không có tiêu đề";
+                    const relatedArtist = getArtistName(related) || "";
+                    const relatedDuration = formatDuration(
+                      related.duration || related.length
+                    );
+
+                    return `
               <div class="song-item flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors" data-song-id="${relatedSongId}">
                 <img src="${getImageUrl(related)}" 
                   alt="song" 
@@ -218,11 +308,14 @@ async function SongDetails(songId) {
                 </div>
               </div>
             `;
-          }).join("") : `
+                  })
+                  .join("")
+              : `
             <div class="text-white/50 text-center py-10">
               <p>Không có bài hát liên quan</p>
             </div>
-          `}
+          `
+          }
         </div>
       </div>
     </section>

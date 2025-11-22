@@ -1,16 +1,27 @@
 export const getImageUrl = (item) => {
   if (!item) return "/src/assets/images/git.jpg";
-  
-  return item.thumbnail || 
-         item.thumbnailUrl || 
-         item.image || 
-         item.img || 
-         item.cover || 
-         item.coverImage ||
-         item.artwork ||
-         item.avatar ||
-         (item.images && (item.images[0] || item.images.thumbnail || item.images.medium || item.images.small)) ||
-         "/src/assets/images/git.jpg";
+
+  if (Array.isArray(item.thumbnails) && item.thumbnails.length > 0) {
+    return item.thumbnails[0];
+  }
+
+  return (
+    item.thumb ||
+    item.thumbnail ||
+    item.thumbnailUrl ||
+    item.image ||
+    item.img ||
+    item.cover ||
+    item.coverImage ||
+    item.artwork ||
+    item.avatar ||
+    (item.images &&
+      (item.images[0] ||
+        item.images.thumbnail ||
+        item.images.medium ||
+        item.images.small)) ||
+    "/src/assets/images/git.jpg"
+  );
 };
 
 export const getArtistName = (item) => {
@@ -27,4 +38,3 @@ export const extractItems = (data) => {
   if (Array.isArray(data)) return data;
   return [];
 };
-

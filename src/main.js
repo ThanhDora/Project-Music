@@ -912,8 +912,90 @@ const updateFooterWithSong = async (song) => {
     if (footerElement) {
       footerElement.outerHTML = footer;
       // Re-initialize audio player after footer update
-      setTimeout(() => {
-        initAudioPlayer();
+      setTimeout(async () => {
+        await initAudioPlayer();
+        // Auto-play if song has audioUrl
+        if (song.audioUrl || song.audio || song.streamUrl) {
+          const audioElement = document.getElementById("audio-element");
+          if (audioElement) {
+            const audioUrl = song.audioUrl || song.audio || song.streamUrl;
+            if (audioUrl) {
+              // Try to get blob URL to avoid CORS
+              try {
+                const { getAudioBlobUrl } = await import("./utils/Request");
+                const blobUrl = await getAudioBlobUrl(audioUrl);
+                if (blobUrl) {
+                  // Remove all source elements
+                  const allSources = audioElement.querySelectorAll("source");
+                  allSources.forEach((s) => s.remove());
+                  // Clear existing src
+                  audioElement.removeAttribute("src");
+                  // Set new src
+                  audioElement.src = blobUrl;
+                  console.log("Audio src set to blob URL:", blobUrl);
+                  audioElement.load();
+                }
+              } catch (e) {
+                console.error("Error getting blob URL:", e);
+                showToast("Không thể tải nhạc do lỗi CORS", "error");
+              }
+
+              // Add error handler
+              const errorHandler = (e) => {
+                console.error("Audio error:", {
+                  code: audioElement.error?.code,
+                  message: audioElement.error?.message,
+                  src: audioElement.src,
+                });
+                showToast(
+                  "Không thể phát nhạc: Định dạng không được hỗ trợ",
+                  "error"
+                );
+              };
+              audioElement.addEventListener("error", errorHandler, {
+                once: true,
+              });
+
+              // Wait for audio to be ready before playing
+              const playAudio = async () => {
+                try {
+                  if (audioElement.readyState >= 2) {
+                    await audioElement.play();
+                    const playBtn = document.getElementById(
+                      "audio-play-pause-btn"
+                    );
+                    if (playBtn) playBtn.innerHTML = Icons.pause();
+                    console.log("Audio playing successfully!");
+                  } else {
+                    audioElement.addEventListener(
+                      "canplay",
+                      async () => {
+                        try {
+                          await audioElement.play();
+                          const playBtn = document.getElementById(
+                            "audio-play-pause-btn"
+                          );
+                          if (playBtn) playBtn.innerHTML = Icons.pause();
+                          console.log("Audio playing after canplay event!");
+                        } catch (e) {
+                          console.log("Auto-play prevented:", e);
+                        }
+                      },
+                      { once: true }
+                    );
+                  }
+                } catch (e) {
+                  console.log(
+                    "Auto-play prevented, user interaction required:",
+                    e
+                  );
+                }
+              };
+
+              playAudio();
+            }
+          }
+        }
       }, 100);
     }
   } catch (error) {
@@ -997,7 +1079,7 @@ const initSongDetails = () => {
       const songId = getCurrentSongId();
       if (songId) {
         try {
-          await trackPlayEvent(null, songId, null);
+          await trackPlayEvent(songId, null, null);
           showToast("Đang phát bài hát", "success");
         } catch (error) {
           console.error("Error playing song:", error);
@@ -1064,12 +1146,108 @@ const initSongDetails = () => {
   // Song list items click handlers
   const songItems = document.querySelectorAll(".song-item");
   songItems.forEach((item) => {
-    item.onclick = (e) => {
+    item.onclick = async (e) => {
       e.preventDefault();
       e.stopPropagation();
 
       const songId = item.getAttribute("data-song-id");
       if (songId) {
+        try {
+          const { getSongDetails } = await import("./utils/Request");
+          const song = await getSongDetails(songId);
+          if (song && !song.error) {
+            localStorage.setItem("currentPlayingSong", JSON.stringify(song));
+            await updateFooterWithSong(song);
+            // Auto-play the song
+            setTimeout(async () => {
+              const audioElement = document.getElementById("audio-element");
+              if (
+                audioElement &&
+                (song.audioUrl || song.audio || song.streamUrl)
+              ) {
+                const audioUrl = song.audioUrl || song.audio || song.streamUrl;
+                if (audioUrl) {
+                  // Try to get blob URL to avoid CORS
+                  try {
+                    const { getAudioBlobUrl } = await import("./utils/Request");
+                    const blobUrl = await getAudioBlobUrl(audioUrl);
+                    if (blobUrl) {
+                      // Remove all source elements
+                      const allSources =
+                        audioElement.querySelectorAll("source");
+                      allSources.forEach((s) => s.remove());
+                      // Clear existing src
+                      audioElement.removeAttribute("src");
+                      // Set new src
+                      audioElement.src = blobUrl;
+                      console.log("Audio src set to blob URL:", blobUrl);
+                      audioElement.load();
+                    }
+                  } catch (e) {
+                    console.error("Error getting blob URL:", e);
+                    showToast("Không thể tải nhạc do lỗi CORS", "error");
+                  }
+
+                  // Add error handler
+                  const errorHandler = (e) => {
+                    console.error("Audio error:", {
+                      code: audioElement.error?.code,
+                      message: audioElement.error?.message,
+                      src: audioElement.src,
+                    });
+                    showToast(
+                      "Không thể phát nhạc: Định dạng không được hỗ trợ",
+                      "error"
+                    );
+                  };
+                  audioElement.addEventListener("error", errorHandler, {
+                    once: true,
+                  });
+
+                  // Wait for audio to be ready before playing
+                  const playAudio = async () => {
+                    try {
+                      if (audioElement.readyState >= 2) {
+                        await audioElement.play();
+                        const playBtn = document.getElementById(
+                          "audio-play-pause-btn"
+                        );
+                        if (playBtn) playBtn.innerHTML = Icons.pause();
+                        console.log("Audio playing successfully!");
+                      } else {
+                        audioElement.addEventListener(
+                          "canplay",
+                          async () => {
+                            try {
+                              await audioElement.play();
+                              const playBtn = document.getElementById(
+                                "audio-play-pause-btn"
+                              );
+                              if (playBtn) playBtn.innerHTML = Icons.pause();
+                              console.log("Audio playing after canplay event!");
+                            } catch (e) {
+                              console.log("Auto-play prevented:", e);
+                            }
+                          },
+                          { once: true }
+                        );
+                      }
+                    } catch (e) {
+                      console.log(
+                        "Auto-play prevented, user interaction required:",
+                        e
+                      );
+                    }
+                  };
+
+                  playAudio();
+                }
+              }
+            }, 200);
+          }
+        } catch (error) {
+          console.error("Error loading song details:", error);
+        }
         navigateToPage("song-details", { songId });
       }
     };
@@ -1146,7 +1324,7 @@ const initSongDetails = () => {
 };
 
 let audioPlayerInitialized = false;
-const initAudioPlayer = () => {
+const initAudioPlayer = async () => {
   const audioElement = document.getElementById("audio-element");
   const playPauseBtn = document.getElementById("audio-play-pause-btn");
   const progressBar = document.getElementById("audio-progress");
@@ -1186,20 +1364,90 @@ const initAudioPlayer = () => {
     if (storedSong) {
       try {
         const song = JSON.parse(storedSong);
-        const videoId = song.videoId;
-        const songId = song._id || song.id;
-        const idToUse = videoId || songId;
-        if (idToUse) {
-          // Always use API streaming endpoint to avoid CORS issues
-          const audioUrl = `https://youtube-music.f8team.dev/api/stream/${idToUse}`;
+        let audioUrl = song.audioUrl || song.audio || song.streamUrl || "";
 
-          console.log("Setting initial audio URL:", audioUrl);
-          // Remove old source if exists
-          if (source) {
-            source.remove();
+        // If no audioUrl, try to fetch from API
+        if (!audioUrl) {
+          const videoId = song.videoId;
+          const songId = song._id || song.id;
+          const idToUse = videoId || songId;
+          if (idToUse) {
+            try {
+              const { getSongDetails } = await import("./utils/Request");
+              const songDetails = await getSongDetails(idToUse);
+              if (songDetails && !songDetails.error && songDetails.audioUrl) {
+                audioUrl = songDetails.audioUrl;
+                // Update localStorage with full song details
+                localStorage.setItem(
+                  "currentPlayingSong",
+                  JSON.stringify(songDetails)
+                );
+              }
+            } catch (e) {
+              console.error("Error fetching song details for audioUrl:", e);
+            }
           }
-          audioElement.src = audioUrl;
-          audioElement.load();
+        }
+
+        if (audioUrl) {
+          console.log("Setting initial audio URL:", audioUrl);
+          // Try to get blob URL to avoid CORS
+          try {
+            const { getAudioBlobUrl } = await import("./utils/Request");
+            const blobUrl = await getAudioBlobUrl(audioUrl);
+            if (blobUrl) {
+              // Remove all source elements
+              const allSources = audioElement.querySelectorAll("source");
+              allSources.forEach((s) => s.remove());
+              // Clear existing src
+              audioElement.removeAttribute("src");
+              // Set new src
+              audioElement.src = blobUrl;
+              console.log("Audio src set to blob URL:", blobUrl);
+              audioElement.load();
+            }
+          } catch (e) {
+            console.error("Error getting blob URL:", e);
+            showToast("Không thể tải nhạc do lỗi CORS", "error");
+          }
+
+          // Add error handler
+          const errorHandler = (e) => {
+            console.error("Audio error:", {
+              code: audioElement.error?.code,
+              message: audioElement.error?.message,
+              src: audioElement.src,
+            });
+            showToast(
+              "Không thể phát nhạc: Định dạng không được hỗ trợ",
+              "error"
+            );
+          };
+          audioElement.addEventListener("error", errorHandler, { once: true });
+
+          // Update duration when metadata is loaded
+          audioElement.addEventListener(
+            "loadedmetadata",
+            () => {
+              console.log(
+                "Audio metadata loaded, duration:",
+                audioElement.duration
+              );
+              const durationEl = document.getElementById("audio-duration");
+              if (durationEl && audioElement.duration) {
+                const formatTime = (seconds) => {
+                  if (isNaN(seconds)) return "0:00";
+                  const mins = Math.floor(seconds / 60);
+                  const secs = Math.floor(seconds % 60);
+                  return `${mins}:${secs.toString().padStart(2, "0")}`;
+                };
+                durationEl.textContent = formatTime(audioElement.duration);
+              }
+            },
+            { once: true }
+          );
+        } else {
+          console.warn("No audioUrl available for song");
         }
       } catch (e) {
         console.error("Error setting initial audio URL:", e);
@@ -1286,40 +1534,82 @@ const initAudioPlayer = () => {
           if (storedSong) {
             try {
               const song = JSON.parse(storedSong);
-              const videoId = song.videoId;
-              const songId = song._id || song.id;
-              const idToUse = videoId || songId;
+              let audioUrl =
+                song.audioUrl || song.audio || song.streamUrl || "";
 
-              if (idToUse) {
-                // Try to get audio URL from song object first, then use API endpoint
-                let audioUrl =
-                  song.audioUrl ||
-                  song.audio ||
-                  song.streamUrl ||
-                  song.url ||
-                  song.source ||
-                  song.streamingUrl ||
-                  song.downloadUrl;
-
-                // If no direct URL, use API streaming endpoint
-                if (!audioUrl) {
-                  audioUrl = `https://youtube-music.f8team.dev/api/stream/${idToUse}`;
+              // If no audioUrl, try to fetch from API
+              if (!audioUrl) {
+                const videoId = song.videoId;
+                const songId = song._id || song.id;
+                const idToUse = videoId || songId;
+                if (idToUse) {
+                  try {
+                    const { getSongDetails } = await import("./utils/Request");
+                    const songDetails = await getSongDetails(idToUse);
+                    if (
+                      songDetails &&
+                      !songDetails.error &&
+                      songDetails.audioUrl
+                    ) {
+                      audioUrl = songDetails.audioUrl;
+                      // Update localStorage with full song details
+                      localStorage.setItem(
+                        "currentPlayingSong",
+                        JSON.stringify(songDetails)
+                      );
+                    }
+                  } catch (e) {
+                    console.error(
+                      "Error fetching song details for audioUrl:",
+                      e
+                    );
+                  }
                 }
+              }
 
+              if (audioUrl) {
                 console.log("Setting audio URL:", audioUrl, {
                   videoId: videoId,
                   songId: songId,
                   idToUse: idToUse,
                   hasDirectUrl: !!song.audioUrl,
+                  audioType: song.audioType,
                 });
-                // Remove old source if exists
-                const oldSource = audioElement.querySelector("source");
-                if (oldSource) {
-                  oldSource.remove();
+                // Try to get blob URL to avoid CORS
+                try {
+                  const { getAudioBlobUrl } = await import("./utils/Request");
+                  const blobUrl = await getAudioBlobUrl(audioUrl);
+                  if (blobUrl) {
+                    // Remove all source elements
+                    const allSources = audioElement.querySelectorAll("source");
+                    allSources.forEach((s) => s.remove());
+                    // Clear existing src
+                    audioElement.removeAttribute("src");
+                    // Set new src
+                    audioElement.src = blobUrl;
+                    console.log("Audio src set to blob URL:", blobUrl);
+                    audioElement.load();
+                  }
+                } catch (e) {
+                  console.error("Error getting blob URL:", e);
+                  showToast("Không thể tải nhạc do lỗi CORS", "error");
                 }
-                console.log("Setting audio source:", audioUrl);
-                audioElement.src = audioUrl;
-                audioElement.load();
+
+                // Add error handler
+                const errorHandler = (e) => {
+                  console.error("Audio error:", {
+                    code: audioElement.error?.code,
+                    message: audioElement.error?.message,
+                    src: audioElement.src,
+                  });
+                  showToast(
+                    "Không thể phát nhạc: Định dạng không được hỗ trợ",
+                    "error"
+                  );
+                };
+                audioElement.addEventListener("error", errorHandler, {
+                  once: true,
+                });
 
                 // Wait for metadata before playing
                 const playAfterLoad = () => {
