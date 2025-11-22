@@ -3,5 +3,6 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   base: "/Project-Music/",
+  plugins: [ghPages()],
   plugins: [tailwindcss()],
 });
