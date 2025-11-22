@@ -8,7 +8,7 @@ function Header() {
   const barsIcon = Icons.bars();
   const user = getCurrentUser();
   const authenticated = isAuthenticated();
-  const avatarImg = user?.avatar || "/src/assets/images/git.jpg";
+  const avatarImg = "./src/assets/images/logo.svg";
   const userName = user?.name || "Guest";
 
   return `
@@ -17,7 +17,7 @@ function Header() {
     <div class="w-[230px] h-full flex justify-start items-center bg-black">
       <div id="logo-container" data-route="home" class="px-5 flex gap-8 justify-start items-center cursor-pointer">
         <div class="cursor-pointer">${barsIcon}</div>
-        <img src="/src/assets/images/logo.svg" alt="logo" class="logo cursor-pointer">
+        <img src="./src/assets/images/logo.svg" alt="logo" class="logo cursor-pointer">
       </div>
     </div>
     <div class="w-[calc(100%-230px)] h-full pl-[9.5%] flex justify-start items-center bg-transparent">
@@ -37,16 +37,20 @@ function Header() {
       </div>
       <div class="w-1/2 gap-8 flex justify-center items-center">
         <div class="cursor-pointer">${chromecastIcon}</div>
-        ${authenticated ? `
+        ${
+          authenticated
+            ? `
           <div class="flex items-center gap-3 cursor-pointer" id="user-menu" data-route="profile">
             <span class="text-white text-sm">${userName}</span>
           <img src="${avatarImg}" alt="avatar" class="w-10 h-10 rounded-full object-cover">
         </div>
-        ` : `
+        `
+            : `
           <button id="login-btn" class="px-4 py-2 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-colors">
             Đăng nhập
           </button>
-        `}
+        `
+        }
       </div>
     </div>
   </header>
