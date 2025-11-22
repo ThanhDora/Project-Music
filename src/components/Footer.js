@@ -1,6 +1,9 @@
 import { Icons } from "../utils/Icons";
 import { fetchSongs } from "../utils/Request";
 import { getImageUrl, getArtistName } from "../utils/helpers";
+import config from "../config.json";
+
+const API_BASE_URL = config.API_URL || "https://youtube-music.f8team.dev/api";
 
 async function Footer(song = null) {
   const playIcon = Icons.play();
@@ -26,7 +29,7 @@ async function Footer(song = null) {
       try {
         currentSong = JSON.parse(storedSong);
       } catch (e) {
-        console.warn("Failed to parse stored song:", e);
+        currentSong = null;
       }
     }
   }
@@ -37,7 +40,7 @@ async function Footer(song = null) {
     try {
       songs = await fetchSongs();
     } catch (error) {
-      console.error("Error loading songs for footer:", error);
+      songs = [];
     }
     currentSong = songs[0] || {};
   }
@@ -47,13 +50,15 @@ async function Footer(song = null) {
     localStorage.setItem("currentPlayingSong", JSON.stringify(currentSong));
   }
 
-  const audioUrl =
-    currentSong.audioUrl ||
-    currentSong.audio ||
-    currentSong.streamUrl ||
-    currentSong.url ||
-    currentSong.source ||
-    "";
+  // Get audio URL - try to use videoId first, then _id or id
+  let audioUrl = "";
+  const videoId = currentSong.videoId;
+  const songId = currentSong._id || currentSong.id;
+
+  const idToUse = videoId || songId;
+  if (idToUse) {
+    audioUrl = `${API_BASE_URL}/stream/${idToUse}`;
+  }
 
   const songTitle = (
     currentSong.title ||
@@ -65,7 +70,7 @@ async function Footer(song = null) {
   return `
     <footer class="w-full h-[8%] fixed bottom-0 left-0 right-0 bg-[#212121] z-40 flex flex-col">
       <!-- Audio Progress Bar - Full Width at Top -->
-      <div class="w-full relative h-1"></div>
+      <div class="w-full relative h-1 group">
         <div class="absolute top-0 left-0 w-full h-full bg-white/10">
           <div id="audio-progress-bar" class="h-full bg-white transition-all" style="width: 0%"></div>
         </div>
@@ -80,10 +85,10 @@ async function Footer(song = null) {
           <button id="audio-prev-btn" class="text-white hover:text-white/80 transition-colors">
             ${prevIcon}
           </button>
-          <button id="audio-play-pause-btn" class="text-white hover:text-white/80 transition-colors">
+          <button id="audio-play-pause-btn" class="text-white hover:text-white/80 transition-colors cursor-pointer z-50 relative" style="pointer-events: auto;">
             ${playIcon}
           </button>
-           <button id="audio-next-btn" class="text-white hover:text-white/80 transition-colors">
+          <button id="audio-next-btn" class="text-white hover:text-white/80 transition-colors">
             ${nextIcon}
           </button>
           <div class="flex items-center gap-1 text-white text-sm">
@@ -139,7 +144,7 @@ async function Footer(song = null) {
         </div>
       </div>
 
-      <audio id="audio-element" preload="metadata" style="display: none;">
+      <audio id="audio-element" preload="auto" crossorigin="anonymous" style="display: none;">
         ${audioUrl ? `<source src="${audioUrl}" type="audio/mpeg">` : ""}
         Your browser does not support the audio element.
       </audio>

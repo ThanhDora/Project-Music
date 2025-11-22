@@ -40,8 +40,8 @@ function Header() {
         ${authenticated ? `
           <div class="flex items-center gap-3 cursor-pointer" id="user-menu" data-route="profile">
             <span class="text-white text-sm">${userName}</span>
-            <img src="${avatarImg}" alt="avatar" class="w-10 h-10 rounded-full object-cover">
-          </div>
+          <img src="${avatarImg}" alt="avatar" class="w-10 h-10 rounded-full object-cover">
+        </div>
         ` : `
           <button id="login-btn" class="px-4 py-2 bg-white text-black font-semibold rounded-lg hover:bg-white/90 transition-colors">
             Đăng nhập

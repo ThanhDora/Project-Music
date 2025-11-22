@@ -31,6 +31,22 @@ async function SongDetails(songId) {
     }
 
     if (!song || (song && song.error)) {
+      // Try to get from localStorage as fallback
+      const storedSong = localStorage.getItem("currentPlayingSong");
+      if (storedSong) {
+        try {
+          const parsedSong = JSON.parse(storedSong);
+          const storedSongId = parsedSong._id || parsedSong.id || parsedSong.videoId;
+          if (storedSongId === songId) {
+            song = parsedSong;
+          }
+        } catch (e) {
+          console.warn("Failed to parse stored song:", e);
+        }
+      }
+    }
+
+    if (!song || (song && song.error)) {
       const errorMsg = song && song.error ? song.error : "Không tìm thấy bài hát";
       return `<div class="w-full flex items-center justify-center py-20">
         <div class="text-white text-center">

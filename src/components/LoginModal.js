@@ -4,7 +4,7 @@ function LoginModal() {
   const closeIcon = Icons.close();
 
   return `
-    <div id="login-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div id="login-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
       <div class="relative w-full max-w-md mx-4">
         <div class="bg-[#1a1a1a] rounded-lg border border-white/10 shadow-2xl p-8">
           <button id="close-login-modal" class="absolute top-4 right-4 text-white/70 hover:text-white transition-colors">

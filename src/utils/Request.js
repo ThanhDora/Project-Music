@@ -40,21 +40,31 @@ async function apiRequest(endpoint, options = {}) {
         errorMessage = data.message;
       }
 
-      console.warn(errorMessage);
-      const error = new Error(errorMessage);
-      error.status = response.status;
-      error.data = data;
-      throw error;
+      // For 401 Unauthorized, return error object instead of throwing
+      if (response.status === 401) {
+        return { error: errorMessage, status: 401, data: data };
+      }
+
+      // For other errors, return error object instead of throwing
+      const errorObj = {
+        error: errorMessage,
+        status: response.status,
+        data: data,
+      };
+      return errorObj;
     }
 
     return data;
   } catch (error) {
-    console.error(`API request error: ${endpoint}`, error);
     // Return error object if it's an API error response
     if (error.data && error.data.error) {
-      return error.data;
+      return {
+        error: error.data.error,
+        status: error.status,
+        data: error.data,
+      };
     }
-    return null;
+    return { error: error.message || "Network error", status: 0 };
   }
 }
 
@@ -145,7 +155,6 @@ export async function updateProfile(name, email) {
     }
 
     const data = await response.json();
-    console.log("Update profile API response:", data);
 
     // Update user in localStorage - handle different response formats
     if (data && data.user) {
@@ -164,7 +173,6 @@ export async function updateProfile(name, email) {
 
     return data;
   } catch (error) {
-    console.error("Update profile error:", error);
     throw error;
   }
 }
@@ -181,7 +189,6 @@ export async function changePassword(oldPassword, password, confirmPassword) {
     }
     return data;
   } catch (error) {
-    console.error("Change password error:", error);
     throw error;
   }
 }
@@ -236,7 +243,6 @@ export async function searchSongs(query, limit = 20, page = 1) {
     }
     return [];
   } catch (error) {
-    console.error("Search error:", error);
     return [];
   }
 }
@@ -265,50 +271,34 @@ export async function getSearchSuggestions(query) {
     }
     return [];
   } catch (error) {
-    console.error("Search suggestions error:", error);
     return [];
   }
 }
 
 export async function getSongDetails(id, limit = 20) {
   if (!id) {
-    console.error("Song ID is required");
     return null;
   }
 
   try {
-    // Try songs/details endpoint first
     let data = await apiRequest(`/songs/details/${id}?limit=${limit}`);
-    console.log("Song details response (songs/details):", data);
-    
-    // Check if API returned an error
+
     if (data && data.error) {
-      console.log("Songs/details returned error, trying videos/details endpoint...");
-      // Try videos/details endpoint
       data = await apiRequest(`/videos/details/${id}?limit=${limit}`);
-      console.log("Song details response (videos/details):", data);
-      
-      // If still error, return null
       if (data && data.error) {
-        console.error("Both endpoints returned error:", data.error);
         return null;
       }
     }
-    
-    // If that fails, try videos/details (since songs might use videoId)
+
     if (!data || (!data._id && !data.id && !data.videoId && !data.error)) {
-      console.log("No valid data, trying videos/details endpoint...");
       data = await apiRequest(`/videos/details/${id}?limit=${limit}`);
-      console.log("Song details response (videos/details):", data);
-      
       if (data && data.error) {
-        console.error("Videos/details also returned error:", data.error);
         return null;
       }
     }
-    
+
     // Handle different response formats
-    if (data && typeof data === 'object' && !data.error) {
+    if (data && typeof data === "object" && !data.error) {
       // If data is the song object itself
       if (data._id || data.id || data.videoId) {
         return data;
@@ -322,22 +312,25 @@ export async function getSongDetails(id, limit = 20) {
         return data.data;
       }
       // If data has results/items array, get first item
-      if (data.results && Array.isArray(data.results) && data.results.length > 0) {
+      if (
+        data.results &&
+        Array.isArray(data.results) &&
+        data.results.length > 0
+      ) {
         return data.results[0];
       }
       if (data.items && Array.isArray(data.items) && data.items.length > 0) {
         return data.items[0];
       }
     }
-    
+
     // If we got here and data exists but doesn't match any format, return it anyway
     if (data && !data.error) {
       return data;
     }
-    
+
     return null;
   } catch (error) {
-    console.error("Error fetching song details:", error);
     return null;
   }
 }
@@ -348,7 +341,6 @@ export async function getVideoDetails(id, limit = 20) {
 
 export async function getAlbumDetails(slug, limit = 20, sort = "-popularity") {
   if (!slug) {
-    console.error("Album slug is required");
     return null;
   }
 
@@ -356,10 +348,9 @@ export async function getAlbumDetails(slug, limit = 20, sort = "-popularity") {
     const data = await apiRequest(
       `/albums/details/${slug}?limit=${limit}&sort=${sort}`
     );
-    console.log("Album details response:", data);
-    
+
     // Handle different response formats
-    if (data && typeof data === 'object') {
+    if (data && typeof data === "object") {
       // If data is the album object itself
       if (data._id || data.id || data.slug) {
         return data;
@@ -375,7 +366,6 @@ export async function getAlbumDetails(slug, limit = 20, sort = "-popularity") {
     }
     return data;
   } catch (error) {
-    console.error("Error fetching album details:", error);
     return null;
   }
 }
@@ -389,6 +379,10 @@ export async function getHomeAlbumsForYou(country = "GLOBAL", limit = 12) {
     const data = await apiRequest(
       `/home/albums-for-you?country=${country}&limit=${limit}`
     );
+    // Check if response is an error object
+    if (data && data.error) {
+      return { items: [] };
+    }
     return data || { items: [] };
   } catch (error) {
     return { items: [] };
@@ -400,6 +394,10 @@ export async function getTodaysHits(country = "GLOBAL", limit = 12) {
     const data = await apiRequest(
       `/home/todays-hits?country=${country}&limit=${limit}`
     );
+    // Check if response is an error object
+    if (data && data.error) {
+      return { items: [] };
+    }
     return data || { items: [] };
   } catch (error) {
     return { items: [] };
@@ -409,6 +407,10 @@ export async function getTodaysHits(country = "GLOBAL", limit = 12) {
 export async function getPersonalized(limit = 20) {
   try {
     const data = await apiRequest(`/home/personalized?limit=${limit}`);
+    // Check if response is an error object
+    if (data && data.error) {
+      return { items: [] };
+    }
     return data || { items: [] };
   } catch (error) {
     return { items: [] };
@@ -471,6 +473,10 @@ export async function getCategoryDetails(slug, subLimit = 10) {
 export async function getMoods(limit = 20, sort = "-popularity") {
   try {
     const data = await apiRequest(`/moods?limit=${limit}&sort=${sort}`);
+    // Check if response is an error object
+    if (data && data.error) {
+      return { items: [] };
+    }
     return data || { items: [] };
   } catch (error) {
     return { items: [] };

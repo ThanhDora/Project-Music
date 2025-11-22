@@ -23,6 +23,7 @@ const routes = {
 };
 
 const STORAGE_KEY = "currentPage";
+const PARAMS_KEY = "currentPageParams";
 
 function getStoredPage() {
   try {
@@ -33,36 +34,53 @@ function getStoredPage() {
   }
 }
 
+function getStoredParams() {
+  try {
+    const stored = localStorage.getItem(PARAMS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
 let currentPage = getStoredPage();
+let currentParams = getStoredParams();
 
 export function getCurrentPage() {
   return currentPage;
 }
 
-export function setCurrentPage(page) {
+export function getCurrentParams() {
+  return currentParams;
+}
+
+export function setCurrentPage(page, params = {}) {
   if (routes[page]) {
     currentPage = page;
+    currentParams = params;
     try {
       localStorage.setItem(STORAGE_KEY, page);
-    } catch (e) {
-      console.error("Error saving page to localStorage:", e);
-    }
+      localStorage.setItem(PARAMS_KEY, JSON.stringify(params));
+    } catch (e) {}
     return true;
   }
   return false;
 }
 
-export async function renderPage(page = currentPage, params = {}) {
+export async function renderPage(page = currentPage, params = null) {
   const PageComponent = routes[page];
   if (PageComponent) {
-    if (page === "song-details" && params.songId) {
-      return await PageComponent(params.songId);
+    // Use provided params or fallback to stored params
+    const finalParams = params !== null ? params : currentParams;
+
+    if (page === "song-details" && finalParams.songId) {
+      return await PageComponent(finalParams.songId);
     }
-    if (page === "video-details" && params.videoId) {
-      return await PageComponent(params.videoId);
+    if (page === "video-details" && finalParams.videoId) {
+      return await PageComponent(finalParams.videoId);
     }
-    if (page === "album-details" && params.albumSlug) {
-      return await PageComponent(params.albumSlug);
+    if (page === "album-details" && finalParams.albumSlug) {
+      return await PageComponent(finalParams.albumSlug);
     }
     return await PageComponent();
   }

@@ -18,7 +18,12 @@ import {
 import { getImageUrl } from "./utils/helpers";
 import { showToast } from "./components/Toast";
 import { Icons } from "./utils/Icons";
-import { setCurrentPage, renderPage, getCurrentPage } from "./router/router";
+import {
+  setCurrentPage,
+  renderPage,
+  getCurrentPage,
+  getCurrentParams,
+} from "./router/router";
 import Footer from "./components/Footer";
 
 const SCROLL_CONTAINERS = [
@@ -74,8 +79,8 @@ const setupScroll = (containerId, prevBtnId, nextBtnId, gap = 16) => {
     scrollContainer.scrollBy({ left: amount, behavior: "smooth" });
   };
 
-  scrollPrevBtn.addEventListener("click", () => scroll(-1));
-  scrollNextBtn.addEventListener("click", () => scroll(1));
+  scrollPrevBtn.onclick = () => scroll(-1);
+  scrollNextBtn.onclick = () => scroll(1);
 };
 
 const initScrollContainers = () => {
@@ -84,10 +89,16 @@ const initScrollContainers = () => {
   });
 };
 
+let searchInitialized = false;
 const initSearch = () => {
   const searchInput = document.getElementById("search");
   const searchResults = document.getElementById("search-results");
-  if (!searchInput || !searchResults) return;
+  if (!searchInput || !searchResults) {
+    searchInitialized = false;
+    return;
+  }
+
+  if (searchInitialized) return;
 
   const displaySearchResults = (results) => {
     if (results.length === 0) {
@@ -154,10 +165,10 @@ const initSearch = () => {
     searchResults.classList.remove("hidden");
 
     searchResults.querySelectorAll("[data-suggestion]").forEach((item) => {
-      item.addEventListener("click", () => {
+      item.onclick = () => {
         searchInput.value = item.getAttribute("data-suggestion");
         performSearch(item.getAttribute("data-suggestion"));
-      });
+      };
     });
   };
 
@@ -216,9 +227,14 @@ const initSearch = () => {
       hideSearchResults();
     }
   });
+
+  searchInitialized = true;
 };
 
+let navigationInitialized = false;
 const initNavigation = () => {
+  if (navigationInitialized) return;
+
   const navItems = document.querySelectorAll(".nav-item");
   const logoContainer = document.getElementById("logo-container");
   const loginBtn = document.getElementById("login-btn");
@@ -229,7 +245,7 @@ const initNavigation = () => {
     if (!route) return;
 
     console.log("Navigating to:", route, "with params:", params);
-    setCurrentPage(route);
+    setCurrentPage(route, params);
     const mainContent = document.getElementById("main-content");
     if (mainContent) {
       mainContent.innerHTML = `<div class="w-full flex items-center justify-center py-20"><p class="text-white">Đang tải...</p></div>`;
@@ -272,9 +288,9 @@ const initNavigation = () => {
     initAuth();
     initPlaylists();
     initProfile();
-    // Re-init handlers after navigation with delay
     setTimeout(async () => {
-      initProfile();
+      songDetailsInitialized = false;
+      audioPlayerInitialized = false;
       initSongDetails();
       initAudioPlayer();
 
@@ -309,52 +325,52 @@ const initNavigation = () => {
   };
 
   if (loginBtn) {
-    loginBtn.addEventListener("click", () => {
+    loginBtn.onclick = () => {
       const modal = document.getElementById("login-modal");
       if (modal) {
         modal.classList.remove("hidden");
         modal.classList.add("flex");
       }
-    });
+    };
   }
 
   if (userMenu) {
-    userMenu.addEventListener("click", () => {
+    userMenu.onclick = () => {
       const route = userMenu.getAttribute("data-route");
       if (route) {
         navigateToPage(route);
       }
-    });
+    };
   }
 
   navItems.forEach((item) => {
     const route = item.getAttribute("data-route");
     if (route === currentRoute) item.classList.add("active");
-    item.addEventListener("click", () => navigateToPage(route));
+    item.onclick = () => navigateToPage(route);
   });
 
   if (logoContainer) {
-    logoContainer.addEventListener("click", () => {
+    logoContainer.onclick = () => {
       navigateToPage(logoContainer.getAttribute("data-route"));
-    });
+    };
   }
 
   const chartsBtn = document.getElementById("charts-btn");
   if (chartsBtn) {
-    chartsBtn.addEventListener("click", () => {
+    chartsBtn.onclick = () => {
       navigateToPage("charts");
-    });
+    };
   }
 
   const newReleasesBtn = document.getElementById("new-releases-btn");
   if (newReleasesBtn) {
-    newReleasesBtn.addEventListener("click", () => {
+    newReleasesBtn.onclick = () => {
       window.scrollTo({
         top:
           document.getElementById("new-music-scroll-container")?.offsetTop || 0,
         behavior: "smooth",
       });
-    });
+    };
   }
 
   document.addEventListener("click", (e) => {
@@ -444,8 +460,11 @@ const initNavigation = () => {
       }
     }
   });
+
+  navigationInitialized = true;
 };
 
+let playlistsInitialized = false;
 const initPlaylists = () => {
   const addPlaylistBtn = document.getElementById("add-playlist-btn");
   const playlistModal = document.getElementById("playlist-modal");
@@ -456,7 +475,12 @@ const initPlaylists = () => {
   const cancelPlaylistBtn = document.getElementById("cancel-playlist-btn");
   const playlistsContainer = document.getElementById("playlists-container");
 
-  if (!playlistsContainer) return;
+  if (!playlistsContainer) {
+    playlistsInitialized = false;
+    return;
+  }
+
+  if (playlistsInitialized) return;
 
   const renderPlaylists = () => {
     const playlists = getPlaylists();
@@ -503,14 +527,12 @@ const initPlaylists = () => {
     if (newPlaylistForm) newPlaylistForm.reset();
   };
 
-  if (addPlaylistBtn) addPlaylistBtn.addEventListener("click", openModal);
-  if (playlistModalBackdrop)
-    playlistModalBackdrop.addEventListener("click", closeModal);
-  if (cancelPlaylistBtn)
-    cancelPlaylistBtn.addEventListener("click", closeModal);
+  if (addPlaylistBtn) addPlaylistBtn.onclick = openModal;
+  if (playlistModalBackdrop) playlistModalBackdrop.onclick = closeModal;
+  if (cancelPlaylistBtn) cancelPlaylistBtn.onclick = closeModal;
 
   if (newPlaylistForm) {
-    newPlaylistForm.addEventListener("submit", async (e) => {
+    newPlaylistForm.onsubmit = async (e) => {
       e.preventDefault();
       const nameInput = document.getElementById("playlist-name");
       if (!nameInput?.value.trim()) return;
@@ -529,20 +551,26 @@ const initPlaylists = () => {
         renderPlaylists();
         closeModal();
       }
-    });
+    };
   }
 
   renderPlaylists();
+  playlistsInitialized = true;
 };
 
+let profileInitialized = false;
 const initProfile = () => {
   const profileForm = document.getElementById("profile-form");
   const passwordForm = document.getElementById("password-form");
   const logoutBtn = document.getElementById("logout-btn");
   const goToLoginBtn = document.getElementById("go-to-login");
 
+  if (!profileForm && !passwordForm && !logoutBtn && !goToLoginBtn) {
+    profileInitialized = false;
+    return;
+  }
+
   if (goToLoginBtn) {
-    // Use event delegation or direct attach
     goToLoginBtn.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -557,7 +585,7 @@ const initProfile = () => {
   }
 
   if (profileForm) {
-    profileForm.addEventListener("submit", async (e) => {
+    profileForm.onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById("profile-name")?.value;
       const email = document.getElementById("profile-email")?.value;
@@ -631,11 +659,11 @@ const initProfile = () => {
         }
         showToast(errorMsg, "error");
       }
-    });
+    };
   }
 
   if (passwordForm) {
-    passwordForm.addEventListener("submit", async (e) => {
+    passwordForm.onsubmit = async (e) => {
       e.preventDefault();
       const currentPassword =
         document.getElementById("current-password")?.value;
@@ -699,11 +727,11 @@ const initProfile = () => {
         }
         showToast(errorMsg, "error");
       }
-    });
+    };
   }
 
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
+    logoutBtn.onclick = async () => {
       if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
         try {
           await logout();
@@ -713,8 +741,10 @@ const initProfile = () => {
           window.location.reload();
         }
       }
-    });
+    };
   }
+
+  profileInitialized = true;
 };
 
 const closeLoginModal = () => {
@@ -730,7 +760,10 @@ const closeLoginModal = () => {
   }
 };
 
+let authInitialized = false;
 const initAuth = () => {
+  if (authInitialized) return;
+
   const loginForm = document.getElementById("login-form");
   const registerForm = document.getElementById("register-form");
   const loginTab = document.getElementById("login-tab");
@@ -740,19 +773,19 @@ const initAuth = () => {
   const loginModal = document.getElementById("login-modal");
 
   if (closeModalBtn) {
-    closeModalBtn.addEventListener("click", closeLoginModal);
+    closeModalBtn.onclick = closeLoginModal;
   }
 
   if (loginModal) {
-    loginModal.addEventListener("click", (e) => {
+    loginModal.onclick = (e) => {
       if (e.target === loginModal) {
         closeLoginModal();
       }
-    });
+    };
   }
 
   if (loginTab && registerTab) {
-    loginTab.addEventListener("click", () => {
+    loginTab.onclick = () => {
       loginTab.classList.add("border-white", "text-white");
       loginTab.classList.remove("text-white/50", "border-transparent");
       registerTab.classList.remove("border-white", "text-white");
@@ -760,9 +793,9 @@ const initAuth = () => {
       loginForm?.classList.remove("hidden");
       registerForm?.classList.add("hidden");
       if (authMessage) authMessage.textContent = "";
-    });
+    };
 
-    registerTab.addEventListener("click", () => {
+    registerTab.onclick = () => {
       registerTab.classList.add("border-white", "text-white");
       registerTab.classList.remove("text-white/50", "border-transparent");
       loginTab.classList.remove("border-white", "text-white");
@@ -770,11 +803,11 @@ const initAuth = () => {
       registerForm?.classList.remove("hidden");
       loginForm?.classList.add("hidden");
       if (authMessage) authMessage.textContent = "";
-    });
+    };
   }
 
   if (loginForm) {
-    loginForm.addEventListener("submit", async (e) => {
+    loginForm.onsubmit = async (e) => {
       e.preventDefault();
       const email = document.getElementById("login-email")?.value;
       const password = document.getElementById("login-password")?.value;
@@ -810,11 +843,11 @@ const initAuth = () => {
           authMessage.textContent = "";
         }
       }
-    });
+    };
   }
 
   if (registerForm) {
-    registerForm.addEventListener("submit", async (e) => {
+    registerForm.onsubmit = async (e) => {
       e.preventDefault();
       const name = document.getElementById("register-name")?.value;
       const email = document.getElementById("register-email")?.value;
@@ -862,8 +895,10 @@ const initAuth = () => {
           authMessage.textContent = "";
         }
       }
-    });
+    };
   }
+
+  authInitialized = true;
 };
 
 import { initApp as initAppLayout } from "./app";
@@ -895,14 +930,39 @@ const render = async () => {
   initPlaylists();
   initAuth();
 
-  // Init profile handlers after page load with delay
-  setTimeout(() => {
+  setTimeout(async () => {
     initProfile();
+    songDetailsInitialized = false;
+    audioPlayerInitialized = false;
     initSongDetails();
     initAudioPlayer();
+
+    // If on song-details page, update footer with current song
+    const currentPage = getCurrentPage();
+    const currentParams = getCurrentParams();
+    if (currentPage === "song-details" && currentParams.songId) {
+      try {
+        const storedSong = localStorage.getItem("currentPlayingSong");
+        if (storedSong) {
+          const song = JSON.parse(storedSong);
+          await updateFooterWithSong(song);
+        } else {
+          // Try to get song from API
+          const { getSongDetails } = await import("./utils/Request");
+          const song = await getSongDetails(currentParams.songId);
+          if (song && !song.error) {
+            localStorage.setItem("currentPlayingSong", JSON.stringify(song));
+            await updateFooterWithSong(song);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading song for footer on reload:", error);
+      }
+    }
   }, 200);
 };
 
+let songDetailsInitialized = false;
 const initSongDetails = () => {
   const playSongBtn = document.getElementById("play-song-btn");
   const likeSongBtn = document.getElementById("like-song-btn");
@@ -910,10 +970,12 @@ const initSongDetails = () => {
   const shareSongBtn = document.getElementById("share-song-btn");
   const moreOptionsBtn = document.getElementById("more-options-btn");
 
-  // Only initialize if we're on song details page
   if (!playSongBtn && !likeSongBtn) {
+    songDetailsInitialized = false;
     return;
   }
+
+  if (songDetailsInitialized) return;
 
   // Get songId from the page - check if we're on song details page
   const getCurrentSongId = () => {
@@ -931,7 +993,7 @@ const initSongDetails = () => {
 
   // Play song button
   if (playSongBtn) {
-    playSongBtn.addEventListener("click", async () => {
+    playSongBtn.onclick = async () => {
       const songId = getCurrentSongId();
       if (songId) {
         try {
@@ -944,29 +1006,29 @@ const initSongDetails = () => {
       } else {
         showToast("Không tìm thấy bài hát", "error");
       }
-    });
+    };
   }
 
   // Like song button
   if (likeSongBtn) {
-    likeSongBtn.addEventListener("click", () => {
+    likeSongBtn.onclick = () => {
       likeSongBtn.classList.toggle("bg-red-500");
       likeSongBtn.classList.toggle("text-white");
       showToast("Đã thêm vào bài hát yêu thích", "success");
-    });
+    };
   }
 
   // Add to playlist button
   if (addToPlaylistBtn) {
-    addToPlaylistBtn.addEventListener("click", async () => {
+    addToPlaylistBtn.onclick = async () => {
       // TODO: Show playlist selection modal
       showToast("Chức năng đang được phát triển", "info");
-    });
+    };
   }
 
   // Share song button
   if (shareSongBtn) {
-    shareSongBtn.addEventListener("click", async () => {
+    shareSongBtn.onclick = async () => {
       const songTitle = document.querySelector("h1")?.textContent || "Bài hát";
       if (navigator.share) {
         try {
@@ -988,21 +1050,21 @@ const initSongDetails = () => {
         navigator.clipboard.writeText(window.location.href);
         showToast("Đã sao chép link", "success");
       }
-    });
+    };
   }
 
   // More options button
   if (moreOptionsBtn) {
-    moreOptionsBtn.addEventListener("click", () => {
+    moreOptionsBtn.onclick = () => {
       // TODO: Show more options menu
       showToast("Chức năng đang được phát triển", "info");
-    });
+    };
   }
 
   // Song list items click handlers
   const songItems = document.querySelectorAll(".song-item");
   songItems.forEach((item) => {
-    item.addEventListener("click", (e) => {
+    item.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
 
@@ -1010,7 +1072,7 @@ const initSongDetails = () => {
       if (songId) {
         navigateToPage("song-details", { songId });
       }
-    });
+    };
   });
 
   // Tab switching
@@ -1058,29 +1120,32 @@ const initSongDetails = () => {
   };
 
   if (tabNext) {
-    tabNext.addEventListener("click", () => switchTab("next"));
+    tabNext.onclick = () => switchTab("next");
   }
   if (tabLyrics) {
-    tabLyrics.addEventListener("click", () => switchTab("lyrics"));
+    tabLyrics.onclick = () => switchTab("lyrics");
   }
   if (tabRelated) {
-    tabRelated.addEventListener("click", () => switchTab("related"));
+    tabRelated.onclick = () => switchTab("related");
   }
 
   // Filter buttons
   const filterButtons = document.querySelectorAll(".filter-btn");
   filterButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.onclick = () => {
       filterButtons.forEach((b) => {
         b.classList.remove("active", "border-white", "text-white");
         b.classList.add("border-transparent", "text-white/50");
       });
       btn.classList.add("active", "border-white", "text-white");
       btn.classList.remove("border-transparent", "text-white/50");
-    });
+    };
   });
+
+  songDetailsInitialized = true;
 };
 
+let audioPlayerInitialized = false;
 const initAudioPlayer = () => {
   const audioElement = document.getElementById("audio-element");
   const playPauseBtn = document.getElementById("audio-play-pause-btn");
@@ -1095,7 +1160,54 @@ const initAudioPlayer = () => {
   const shuffleBtn = document.getElementById("audio-shuffle-btn");
   const repeatBtn = document.getElementById("audio-repeat-btn");
 
-  if (!audioElement) return;
+  if (!audioElement) {
+    audioPlayerInitialized = false;
+    return;
+  }
+
+  if (audioPlayerInitialized && playPauseBtn) {
+    return;
+  }
+
+  console.log("Initializing audio player", {
+    audioElement: !!audioElement,
+    playPauseBtn: !!playPauseBtn,
+    hasSource: !!audioElement.querySelector("source"),
+    audioSrc:
+      audioElement.src || audioElement.querySelector("source")?.src || "none",
+  });
+
+  // Check if audio has source, if not try to set it
+  const source = audioElement.querySelector("source");
+  const currentSrc = audioElement.src || (source && source.src);
+
+  if (!currentSrc || currentSrc === window.location.href) {
+    const storedSong = localStorage.getItem("currentPlayingSong");
+    if (storedSong) {
+      try {
+        const song = JSON.parse(storedSong);
+        const videoId = song.videoId;
+        const songId = song._id || song.id;
+        const idToUse = videoId || songId;
+        if (idToUse) {
+          // Always use API streaming endpoint to avoid CORS issues
+          const audioUrl = `https://youtube-music.f8team.dev/api/stream/${idToUse}`;
+
+          console.log("Setting initial audio URL:", audioUrl);
+          // Remove old source if exists
+          if (source) {
+            source.remove();
+          }
+          audioElement.src = audioUrl;
+          audioElement.load();
+        }
+      } catch (e) {
+        console.error("Error setting initial audio URL:", e);
+      }
+    }
+  } else {
+    console.log("Audio already has source:", currentSrc);
+  }
 
   let isPlaying = false;
   let isMuted = false;
@@ -1134,53 +1246,293 @@ const initAudioPlayer = () => {
 
   // Play/Pause
   if (playPauseBtn) {
-    playPauseBtn.addEventListener("click", () => {
+    // Use onclick to ensure it works
+    playPauseBtn.onclick = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      console.log("Play button clicked!");
+
+      const currentBtn = document.getElementById("audio-play-pause-btn");
+      if (!currentBtn) {
+        console.error("Play button not found!");
+        return;
+      }
+
       if (isPlaying) {
         audioElement.pause();
         isPlaying = false;
-        playPauseBtn.innerHTML = Icons.play();
+        currentBtn.innerHTML = Icons.play();
       } else {
-        audioElement
-          .play()
-          .then(() => {
-            isPlaying = true;
-            playPauseBtn.innerHTML = Icons.pause();
-          })
-          .catch((error) => {
-            console.error("Error playing audio:", error);
-            showToast(
-              "Không thể phát nhạc. Vui lòng kiểm tra lại URL.",
-              "error"
-            );
-          });
+        // Check if audio source exists
+        const source = audioElement.querySelector("source");
+        let currentSrc = audioElement.src || (source && source.src);
+
+        console.log("Play button clicked", {
+          hasSource: !!source,
+          sourceSrc: source?.src,
+          audioSrc: audioElement.src,
+          currentSrc: currentSrc,
+          readyState: audioElement.readyState,
+        });
+
+        if (
+          !currentSrc ||
+          currentSrc === window.location.href ||
+          currentSrc === ""
+        ) {
+          // Try to get audio URL from current song
+          const storedSong = localStorage.getItem("currentPlayingSong");
+          if (storedSong) {
+            try {
+              const song = JSON.parse(storedSong);
+              const videoId = song.videoId;
+              const songId = song._id || song.id;
+              const idToUse = videoId || songId;
+
+              if (idToUse) {
+                // Try to get audio URL from song object first, then use API endpoint
+                let audioUrl =
+                  song.audioUrl ||
+                  song.audio ||
+                  song.streamUrl ||
+                  song.url ||
+                  song.source ||
+                  song.streamingUrl ||
+                  song.downloadUrl;
+
+                // If no direct URL, use API streaming endpoint
+                if (!audioUrl) {
+                  audioUrl = `https://youtube-music.f8team.dev/api/stream/${idToUse}`;
+                }
+
+                console.log("Setting audio URL:", audioUrl, {
+                  videoId: videoId,
+                  songId: songId,
+                  idToUse: idToUse,
+                  hasDirectUrl: !!song.audioUrl,
+                });
+                // Remove old source if exists
+                const oldSource = audioElement.querySelector("source");
+                if (oldSource) {
+                  oldSource.remove();
+                }
+                console.log("Setting audio source:", audioUrl);
+                audioElement.src = audioUrl;
+                audioElement.load();
+
+                // Wait for metadata before playing
+                const playAfterLoad = () => {
+                  console.log("Audio ready, attempting to play...", {
+                    readyState: audioElement.readyState,
+                    src: audioElement.src,
+                    duration: audioElement.duration,
+                    networkState: audioElement.networkState,
+                    paused: audioElement.paused,
+                  });
+
+                  if (audioElement.paused) {
+                    audioElement
+                      .play()
+                      .then(() => {
+                        console.log("Audio playing successfully!");
+                        isPlaying = true;
+                        const currentBtn = document.getElementById(
+                          "audio-play-pause-btn"
+                        );
+                        if (currentBtn) currentBtn.innerHTML = Icons.pause();
+                      })
+                      .catch((error) => {
+                        console.error("Error playing audio:", error);
+                        console.error("Audio error details:", {
+                          code: audioElement.error?.code,
+                          message: audioElement.error?.message,
+                          networkState: audioElement.networkState,
+                          readyState: audioElement.readyState,
+                          src: audioElement.src,
+                        });
+                        showToast(
+                          `Không thể phát nhạc: ${
+                            error.message || "Lỗi không xác định"
+                          }`,
+                          "error"
+                        );
+                      });
+                  } else {
+                    console.log("Audio already playing");
+                  }
+                };
+
+                // Try multiple events to ensure audio loads
+                const tryPlay = () => {
+                  if (audioElement.readyState >= 2) {
+                    playAfterLoad();
+                  } else {
+                    console.log("Audio not ready yet, waiting...", {
+                      readyState: audioElement.readyState,
+                    });
+                  }
+                };
+
+                // Try to play immediately if ready, otherwise wait for events
+                if (audioElement.readyState >= 2) {
+                  console.log("Audio already ready, playing immediately");
+                  playAfterLoad();
+                } else {
+                  console.log(
+                    "Waiting for audio to load, readyState:",
+                    audioElement.readyState
+                  );
+
+                  // Listen for multiple events to ensure we catch when audio is ready
+                  const eventHandler = () => {
+                    console.log(
+                      "Audio load event fired, readyState:",
+                      audioElement.readyState
+                    );
+                    if (audioElement.readyState >= 2) {
+                      playAfterLoad();
+                    }
+                  };
+
+                  audioElement.addEventListener("canplay", eventHandler, {
+                    once: true,
+                  });
+                  audioElement.addEventListener("loadeddata", eventHandler, {
+                    once: true,
+                  });
+                  audioElement.addEventListener(
+                    "canplaythrough",
+                    eventHandler,
+                    { once: true }
+                  );
+                  audioElement.addEventListener(
+                    "loadedmetadata",
+                    () => {
+                      console.log(
+                        "Metadata loaded, duration:",
+                        audioElement.duration
+                      );
+                      if (audioElement.readyState >= 2) {
+                        playAfterLoad();
+                      }
+                    },
+                    { once: true }
+                  );
+
+                  // Fallback timeout - try to play after 3 seconds
+                  setTimeout(() => {
+                    console.log(
+                      "Fallback timeout, readyState:",
+                      audioElement.readyState,
+                      "isPlaying:",
+                      isPlaying
+                    );
+                    if (!isPlaying && audioElement.readyState >= 1) {
+                      console.log("Attempting to play after timeout");
+                      playAfterLoad();
+                    }
+                  }, 3000);
+                }
+                return;
+              }
+            } catch (e) {
+              console.error("Error getting audio URL:", e);
+              showToast("Không thể lấy URL phát nhạc", "error");
+            }
+          } else {
+            console.warn("No song in localStorage");
+            showToast("Chưa có bài hát để phát", "info");
+          }
+        }
+
+        // If source already exists, just play
+        currentSrc =
+          audioElement.src || audioElement.querySelector("source")?.src;
+        if (
+          currentSrc &&
+          currentSrc !== window.location.href &&
+          currentSrc !== ""
+        ) {
+          console.log("Playing existing audio:", currentSrc);
+          if (audioElement.readyState >= 2) {
+            audioElement
+              .play()
+              .then(() => {
+                console.log("Audio playing successfully");
+                isPlaying = true;
+                const currentBtn = document.getElementById(
+                  "audio-play-pause-btn"
+                );
+                if (currentBtn) currentBtn.innerHTML = Icons.pause();
+              })
+              .catch((error) => {
+                console.error("Error playing audio:", error);
+                showToast(
+                  "Không thể phát nhạc. Vui lòng kiểm tra lại URL.",
+                  "error"
+                );
+              });
+          } else {
+            // Wait for audio to be ready
+            const playWhenReady = () => {
+              audioElement
+                .play()
+                .then(() => {
+                  console.log("Audio playing successfully");
+                  isPlaying = true;
+                  const currentBtn = document.getElementById(
+                    "audio-play-pause-btn"
+                  );
+                  if (currentBtn) currentBtn.innerHTML = Icons.pause();
+                })
+                .catch((error) => {
+                  console.error("Error playing audio:", error);
+                  showToast(
+                    "Không thể phát nhạc. Vui lòng kiểm tra lại URL.",
+                    "error"
+                  );
+                });
+            };
+            audioElement.addEventListener("canplay", playWhenReady, {
+              once: true,
+            });
+            audioElement.addEventListener("loadeddata", playWhenReady, {
+              once: true,
+            });
+          }
+        } else {
+          console.warn("No audio source available", { currentSrc });
+          showToast("Chưa có bài hát để phát", "info");
+        }
       }
-    });
+    };
   }
 
   // Progress bar
   if (progressBar) {
-    progressBar.addEventListener("input", (e) => {
+    progressBar.oninput = (e) => {
       if (audioElement.duration) {
         audioElement.currentTime =
           (e.target.value / 100) * audioElement.duration;
       }
-    });
+    };
   }
 
   // Volume control
   if (volumeSlider) {
-    volumeSlider.addEventListener("input", (e) => {
+    volumeSlider.oninput = (e) => {
       currentVolume = e.target.value;
       audioElement.volume = currentVolume / 100;
       if (currentVolume > 0) {
         isMuted = false;
         if (volumeBtn) volumeBtn.innerHTML = Icons.volumeHigh();
       }
-    });
+    };
   }
 
   if (volumeBtn) {
-    volumeBtn.addEventListener("click", () => {
+    volumeBtn.onclick = () => {
       if (isMuted) {
         audioElement.volume = currentVolume / 100;
         isMuted = false;
@@ -1190,16 +1542,71 @@ const initAudioPlayer = () => {
         isMuted = true;
         volumeBtn.innerHTML = Icons.volumeOff();
       }
-    });
+    };
   }
 
   // Audio events
   audioElement.addEventListener("timeupdate", updateProgress);
-  audioElement.addEventListener("loadedmetadata", updateDuration);
+  audioElement.addEventListener("loadedmetadata", () => {
+    console.log("Audio metadata loaded", {
+      duration: audioElement.duration,
+      readyState: audioElement.readyState,
+    });
+    updateDuration();
+  });
+  audioElement.addEventListener("canplay", () => {
+    console.log("Audio can play", {
+      duration: audioElement.duration,
+      readyState: audioElement.readyState,
+    });
+    updateDuration();
+  });
+  audioElement.addEventListener("loadstart", () => {
+    console.log("Audio load started");
+    if (currentTimeEl) currentTimeEl.textContent = "0:00";
+    if (durationEl) durationEl.textContent = "0:00";
+  });
+  audioElement.addEventListener("progress", () => {
+    console.log("Audio loading progress", {
+      buffered:
+        audioElement.buffered.length > 0 ? audioElement.buffered.end(0) : 0,
+      readyState: audioElement.readyState,
+    });
+  });
+  audioElement.addEventListener("error", (e) => {
+    console.error("Audio error event:", e);
+    const error = audioElement.error;
+    if (error) {
+      let errorMsg = "Không thể phát nhạc";
+      switch (error.code) {
+        case error.MEDIA_ERR_ABORTED:
+          errorMsg = "Phát nhạc bị hủy";
+          break;
+        case error.MEDIA_ERR_NETWORK:
+          errorMsg = "Lỗi kết nối mạng";
+          break;
+        case error.MEDIA_ERR_DECODE:
+          errorMsg = "Không thể giải mã file nhạc";
+          break;
+        case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          errorMsg = "Định dạng không được hỗ trợ";
+          break;
+      }
+      console.error("Audio error details:", {
+        code: error.code,
+        message: errorMsg,
+        networkState: audioElement.networkState,
+        readyState: audioElement.readyState,
+        src: audioElement.src,
+      });
+      showToast(errorMsg, "error");
+    }
+  });
   audioElement.addEventListener("ended", () => {
     isPlaying = false;
-    if (playPauseBtn) {
-      playPauseBtn.innerHTML = Icons.play();
+    const currentBtn = document.getElementById("audio-play-pause-btn");
+    if (currentBtn) {
+      currentBtn.innerHTML = Icons.play();
     }
     // Handle repeat mode
     if (repeatMode === 2) {
@@ -1218,32 +1625,82 @@ const initAudioPlayer = () => {
 
   // Placeholder buttons
   if (prevBtn) {
-    prevBtn.addEventListener("click", () => {
+    prevBtn.onclick = () => {
       showToast("Chức năng đang được phát triển", "info");
-    });
+    };
   }
 
   if (nextBtn) {
-    nextBtn.addEventListener("click", () => {
+    nextBtn.onclick = () => {
       showToast("Chức năng đang được phát triển", "info");
-    });
+    };
   }
 
   if (shuffleBtn) {
-    shuffleBtn.addEventListener("click", () => {
+    shuffleBtn.onclick = () => {
       isShuffling = !isShuffling;
       shuffleBtn.classList.toggle("text-white", isShuffling);
       shuffleBtn.classList.toggle("text-white/70", !isShuffling);
-    });
+    };
   }
 
   if (repeatBtn) {
-    repeatBtn.addEventListener("click", () => {
+    repeatBtn.onclick = () => {
       repeatMode = (repeatMode + 1) % 3;
       repeatBtn.classList.toggle("text-white", repeatMode > 0);
       repeatBtn.classList.toggle("text-white/70", repeatMode === 0);
-    });
+    };
   }
+
+  // Additional Footer controls
+  const dislikeBtn = document.getElementById("audio-dislike-btn");
+  const likeBtn = document.getElementById("audio-like-btn");
+  const moreOptionsBtn = document.getElementById("audio-more-options-btn");
+  const castBtn = document.getElementById("audio-cast-btn");
+  const minimizeBtn = document.getElementById("audio-minimize-btn");
+
+  if (dislikeBtn) {
+    dislikeBtn.onclick = () => {
+      showToast("Đã bỏ thích bài hát", "info");
+    };
+  }
+
+  if (likeBtn) {
+    likeBtn.onclick = () => {
+      likeBtn.classList.toggle("text-red-500");
+      const isLiked = likeBtn.classList.contains("text-red-500");
+      showToast(
+        isLiked
+          ? "Đã thêm vào bài hát yêu thích"
+          : "Đã xóa khỏi bài hát yêu thích",
+        "success"
+      );
+    };
+  }
+
+  if (moreOptionsBtn) {
+    moreOptionsBtn.onclick = () => {
+      showToast("Chức năng đang được phát triển", "info");
+    };
+  }
+
+  if (castBtn) {
+    castBtn.onclick = () => {
+      showToast("Chức năng đang được phát triển", "info");
+    };
+  }
+
+  if (minimizeBtn) {
+    minimizeBtn.onclick = () => {
+      const footer = document.querySelector("footer");
+      if (footer) {
+        footer.classList.toggle("h-[8%]");
+        footer.classList.toggle("h-[4%]");
+      }
+    };
+  }
+
+  audioPlayerInitialized = true;
 };
 
 if (document.readyState === "loading") {

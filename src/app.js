@@ -32,28 +32,46 @@ export async function initApp() {
 
     appInitialized = true;
 
-    const page = await renderPage();
+    const { getCurrentPage, getCurrentParams } = await import("./router/router");
+    const currentPage = getCurrentPage();
+    let currentParams = getCurrentParams();
+    
+    // If on song-details page but no songId in params, try to get from localStorage
+    if (currentPage === "song-details" && !currentParams.songId) {
+      try {
+        const storedSong = localStorage.getItem("currentPlayingSong");
+        if (storedSong) {
+          const song = JSON.parse(storedSong);
+          const songId = song._id || song.id || song.videoId;
+          if (songId) {
+            currentParams = { songId };
+          }
+        }
+      } catch (e) {
+      }
+    }
+    
+    const page = await renderPage(currentPage, currentParams);
     const mainContent = document.getElementById("main-content");
     if (mainContent) {
       mainContent.innerHTML = page;
     }
   } catch (error) {
-    console.error("Error initializing app:", error);
     document.querySelector("#app").innerHTML = `
       ${Header()}
-      ${Sidebar()}
-      <main id="main-content" class="content-area fixed top-16 left-[230px] right-0 bottom-[8%] overflow-y-auto p-5">
+    ${Sidebar()}
+    <main id="main-content" class="content-area fixed top-16 left-[230px] right-0 bottom-[8%] overflow-y-auto p-5">
         <div class="w-full flex items-center justify-center py-20">
           <div class="text-white text-center">
             <p class="text-xl mb-4">Có lỗi xảy ra khi tải trang</p>
             <p class="text-white/50 text-sm">Vui lòng thử lại sau</p>
           </div>
         </div>
-      </main>
+    </main>
       ${await Footer().catch(() => "")}
       ${LoginModal()}
       ${Toast()}
-    `;
+  `;
     appInitialized = true;
   }
 }

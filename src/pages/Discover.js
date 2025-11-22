@@ -25,7 +25,6 @@ async function Discover() {
       getMoods(20),
     ]);
   } catch (error) {
-    console.error("Error loading discover data:", error);
     newReleases = { items: [] };
     newVideos = { items: [] };
     exploreMeta = { items: [] };

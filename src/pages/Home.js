@@ -93,7 +93,10 @@ async function Home() {
     getMoods(20),
   ]);
 
-  const songs = extractItems(personalized);
+  // Ensure personalized is not an error object
+  const personalizedData =
+    personalized && personalized.error ? { items: [] } : personalized;
+  const songs = extractItems(personalizedData);
   const videos = extractItems(todaysHits);
   const albums = extractItems(albumsForYou);
   const moodsList = extractItems(moods);
