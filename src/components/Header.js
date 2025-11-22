@@ -1,5 +1,7 @@
 import { Icons } from "../utils/Icons";
 import { getCurrentUser, isAuthenticated } from "../utils/Request";
+import logoUrl from "../assets/images/logo.svg?url";
+import gitImageUrl from "../assets/images/git.jpg?url";
 
 function Header() {
   const searchIcon = Icons.search();
@@ -8,7 +10,7 @@ function Header() {
   const barsIcon = Icons.bars();
   const user = getCurrentUser();
   const authenticated = isAuthenticated();
-  const avatarImg = user?.avatar || "./src/assets/images/git.jpg";
+  const avatarImg = user?.avatar || gitImageUrl;
   const userName = user?.name || "Guest";
 
   return `
@@ -17,7 +19,7 @@ function Header() {
     <div class="w-[230px] h-full flex justify-start items-center bg-black">
       <div id="logo-container" data-route="home" class="px-5 flex gap-8 justify-start items-center cursor-pointer">
         <div class="cursor-pointer">${barsIcon}</div>
-        <img src="./src/assets/images/logo.svg" alt="logo" class="logo cursor-pointer">
+        <img src="${logoUrl}" alt="logo" class="logo cursor-pointer" onerror="this.onerror=null; this.src='${gitImageUrl}'">
       </div>
     </div>
     <div class="w-[calc(100%-230px)] h-full pl-[9.5%] flex justify-start items-center bg-transparent">

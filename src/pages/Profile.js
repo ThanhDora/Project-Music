@@ -1,4 +1,6 @@
 import { Icons } from "../utils/Icons";
+import gitImageUrl from "../assets/images/git.jpg?url";
+
 import {
   getCurrentUser,
   updateProfile,
@@ -52,7 +54,7 @@ async function Profile() {
               <img src="${getImageUrl(user)}" 
                 alt="avatar" 
                 class="w-32 h-32 rounded-full object-cover border-4 border-white/20"
-                onerror="this.onerror=null; this.src='./src/assets/images/git.jpg'">
+                onerror="this.onerror=null; this.src='${gitImageUrl}'">
               <button id="change-avatar-btn" class="absolute bottom-0 right-0 p-2 bg-white text-black rounded-full hover:bg-white/90 transition-colors">
                 ${editIcon()}
               </button>

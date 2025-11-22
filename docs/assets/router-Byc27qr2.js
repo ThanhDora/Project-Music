@@ -1,1 +1,0 @@
-import{i as e,n as t,r as n,t as r}from"./index-BM2yJarZ.js";export{r as getCurrentPage,t as getCurrentParams,n as renderPage,e as setCurrentPage};
