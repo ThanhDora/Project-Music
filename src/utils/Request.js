@@ -1,6 +1,4 @@
-import config from "../config.json";
-
-const API_BASE_URL = config.API_URL || "https://youtube-music.f8team.dev/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const PLAYLISTS_STORAGE_KEY = "playlists";
 const AUTH_TOKEN_KEY = "auth_token";
 const REFRESH_TOKEN_KEY = "refresh_token";

@@ -1,9 +1,6 @@
 import { Icons } from "../utils/Icons";
 import { fetchSongs } from "../utils/Request";
 import { getImageUrl, getArtistName } from "../utils/helpers";
-import config from "../config.json";
-
-const API_BASE_URL = config.API_URL || "https://youtube-music.f8team.dev/api";
 
 async function Footer(song = null) {
   const playIcon = Icons.play();
